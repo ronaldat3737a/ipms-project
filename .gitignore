@@ -1,0 +1,24 @@
+# ===== Node =====
+node_modules/
+
+# ===== React =====
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+
+# ===== Spring Boot =====
+backend/target/
+*.log
+
+# ===== Environment =====
+.env
+.env.*
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.iml
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
