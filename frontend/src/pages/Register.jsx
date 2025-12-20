@@ -37,7 +37,7 @@ const Register = () => {
     });
   };
 
-  // 3. Hàm xử lý khi nhấn nút Đăng ký
+  // 3. Hàm xử lý khi nhấn nút Đăng ký (ĐÃ SỬA LỖI HIỂN THỊ [object Object])
   const handleRegister = async () => {
     // Kiểm tra các trường bắt buộc
     if (
@@ -60,11 +60,11 @@ const Register = () => {
     const userData = {
       role: role,
       fullName: formData.fullName,
-      dob: formData.dob, // Định dạng YYYY-MM-DD từ input type="date"
+      dob: formData.dob,
       cccdNumber: formData.cccdNumber,
       email: formData.email,
       phoneNumber: formData.phoneNumber,
-      passwordHash: formData.password, // Backend nhận key này để lưu
+      passwordHash: formData.password,
     };
 
     try {
@@ -72,10 +72,24 @@ const Register = () => {
         "http://localhost:8080/api/auth/register",
         userData
       );
-      alert(response.data); // Hiện thông báo: "Đăng ký thành công..."
-      navigate("/login"); // Chuyển hướng về trang đăng nhập
+
+      // FIX LỖI [object Object]: Ép kiểu dữ liệu trả về thành chuỗi văn bản
+      const successMsg =
+        typeof response.data === "string"
+          ? response.data
+          : response.data.message || JSON.stringify(response.data);
+
+      alert("Thông báo: " + successMsg);
+      navigate("/login");
     } catch (error) {
-      alert(error.response?.data || "Có lỗi xảy ra khi kết nối tới máy chủ");
+      // Xử lý lỗi nếu Backend trả về Object lỗi
+      const errorData = error.response?.data;
+      const errorMsg =
+        typeof errorData === "string"
+          ? errorData
+          : errorData?.message || JSON.stringify(errorData);
+
+      alert("Lỗi: " + (errorMsg || "Không thể kết nối tới máy chủ"));
     }
   };
 
@@ -95,7 +109,6 @@ const Register = () => {
             Tạo tài khoản mới
           </h2>
 
-          {/* Chọn Vai trò (Role Toggle) */}
           <div className="flex bg-gray-100 p-1.5 rounded-xl mb-8">
             <button
               onClick={() => setRole("APPLICANT")}
