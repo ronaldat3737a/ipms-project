@@ -17,16 +17,18 @@ const Register = () => {
   const [role, setRole] = useState("APPLICANT"); // 'APPLICANT' hoặc 'EXAMINER'
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [showStaffCode, setShowStaffCode] = useState(false); // Ẩn/hiện mã code nhân viên
 
   // 2. Quản lý dữ liệu người dùng nhập vào
   const [formData, setFormData] = useState({
     fullName: "",
     dob: "",
-    cccdNumber: "",
+    cccdNumber: "", // Dùng chung trường này cho cả Số CCCD và Mã nhân viên
     email: "",
     phoneNumber: "",
     password: "",
     confirmPassword: "",
+    securityCode: "", // Mã xác thực dành riêng cho Examiner
   });
 
   // Hàm cập nhật dữ liệu khi người dùng gõ phím
@@ -37,16 +39,25 @@ const Register = () => {
     });
   };
 
-  // 3. Hàm xử lý khi nhấn nút Đăng ký (ĐÃ SỬA LỖI HIỂN THỊ [object Object])
+  // 3. Hàm xử lý khi nhấn nút Đăng ký
   const handleRegister = async () => {
     // Kiểm tra các trường bắt buộc
     if (
       !formData.fullName ||
       !formData.email ||
       !formData.password ||
-      !formData.dob
+      !formData.dob ||
+      !formData.cccdNumber
     ) {
       alert("Vui lòng điền đầy đủ các thông tin bắt buộc (*)");
+      return;
+    }
+
+    // Logic kiểm tra mã xác thực dành cho Người duyệt đơn
+    if (role === "EXAMINER" && formData.securityCode !== "NhanVienIP2025") {
+      alert(
+        "Mã code tạo nhân viên không chính xác. Bạn không có quyền đăng ký vai trò này!"
+      );
       return;
     }
 
@@ -73,7 +84,7 @@ const Register = () => {
         userData
       );
 
-      // FIX LỖI [object Object]: Ép kiểu dữ liệu trả về thành chuỗi văn bản
+      // Ép kiểu dữ liệu trả về thành chuỗi văn bản để tránh lỗi [object Object]
       const successMsg =
         typeof response.data === "string"
           ? response.data
@@ -82,7 +93,6 @@ const Register = () => {
       alert("Thông báo: " + successMsg);
       navigate("/login");
     } catch (error) {
-      // Xử lý lỗi nếu Backend trả về Object lỗi
       const errorData = error.response?.data;
       const errorMsg =
         typeof errorData === "string"
@@ -103,29 +113,32 @@ const Register = () => {
       </div>
 
       <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-stretch">
-        {/* CỘT TRÁI: FORM ĐĂNG KÝ */}
+        {/* CỘT TRÁI: FORM ĐĂNG KÝ (Sát thiết kế mẫu) */}
         <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
           <h2 className="text-2xl font-bold text-center mb-8">
             Tạo tài khoản mới
           </h2>
 
+          {/* Nút chuyển đổi vai trò */}
           <div className="flex bg-gray-100 p-1.5 rounded-xl mb-8">
             <button
+              type="button"
               onClick={() => setRole("APPLICANT")}
               className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 role === "APPLICANT"
-                  ? "bg-blue-500 text-white shadow-md"
-                  : "text-gray-500"
+                  ? "bg-white text-gray-700 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               Người nộp đơn
             </button>
             <button
+              type="button"
               onClick={() => setRole("EXAMINER")}
               className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 role === "EXAMINER"
                   ? "bg-blue-500 text-white shadow-md"
-                  : "text-gray-500"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               Người duyệt đơn
@@ -152,13 +165,14 @@ const Register = () => {
                   name="dob"
                   value={formData.dob}
                   onChange={handleChange}
-                  className="w-full border border-gray-200 rounded-xl p-3 pr-10 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
+                  className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
                 />
               </div>
             </div>
 
+            {/* Đổi Label dựa trên vai trò */}
             <InputField
-              label="Số CCCD"
+              label={role === "APPLICANT" ? "Số CCCD" : "Mã số nhân viên"}
               name="cccdNumber"
               placeholder="VD: 012345678912"
               required
@@ -168,7 +182,7 @@ const Register = () => {
             />
 
             <InputField
-              label="Email"
+              label={role === "APPLICANT" ? "Email" : "Email công việc"}
               name="email"
               type="email"
               placeholder="john.doe@example.com"
@@ -207,9 +221,23 @@ const Register = () => {
               placeholder="Xác nhận mật khẩu"
             />
 
+            {/* Ô nhập mã code tạo nhân viên - Chỉ hiện khi chọn EXAMINER */}
+            {role === "EXAMINER" && (
+              <PasswordField
+                label="Nhập mã code tạo nhân viên"
+                name="securityCode"
+                show={showStaffCode}
+                value={formData.securityCode}
+                onChange={handleChange}
+                toggle={() => setShowStaffCode(!showStaffCode)}
+                placeholder="VD: abcd1234"
+              />
+            )}
+
             <div className="flex items-start gap-3 mt-6">
               <input
                 type="checkbox"
+                required
                 className="mt-1 w-4 h-4 text-blue-500 border-gray-300 rounded"
               />
               <p className="text-xs text-gray-500 leading-relaxed">
@@ -227,7 +255,11 @@ const Register = () => {
 
             <button
               onClick={handleRegister}
-              className="w-full bg-blue-500 text-white py-4 rounded-xl font-bold mt-6 hover:bg-blue-600 transition shadow-sm"
+              className={`w-full py-4 rounded-xl font-bold mt-6 transition shadow-sm text-white ${
+                role === "EXAMINER"
+                  ? "bg-blue-400 hover:bg-blue-500"
+                  : "bg-blue-300 hover:bg-blue-400"
+              }`}
             >
               Đăng ký tài khoản
             </button>
@@ -244,7 +276,7 @@ const Register = () => {
           </div>
         </div>
 
-        {/* CỘT PHẢI: THÔNG TIN BỔ TRỢ */}
+        {/* CỘT PHẢI: THÔNG TIN BỔ TRỢ (Giữ nguyên giao diện chuẩn) */}
         <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-10">
           <div>
             <h3 className="text-lg font-bold mb-8">
@@ -278,7 +310,7 @@ const Register = () => {
   );
 };
 
-// --- CÁC THÀNH PHẦN PHỤ TRỢ (HELPER COMPONENTS) ---
+// --- CÁC THÀNH PHẦN PHỤ TRỢ (Dùng chung cho cả 2 role) ---
 
 const InputField = ({
   label,

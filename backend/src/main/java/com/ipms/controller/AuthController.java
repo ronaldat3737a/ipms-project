@@ -1,45 +1,77 @@
 package com.ipms.controller;
 
+import com.ipms.dto.RegisterRequest;
 import com.ipms.entity.User;
+import com.ipms.entity.UserRole;
 import com.ipms.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // 1. Thêm thư viện mã hóa
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin("*") 
+@CrossOrigin("*")
 public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
 
-    // 2. Khai báo công cụ mã hóa mật khẩu
+    // Khai báo công cụ băm mật khẩu BCrypt
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+    // Mã bảo mật nhân viên cố định để xác thực quyền đăng ký Người duyệt đơn
+    private final String STAFF_SECURITY_CODE = "NhanVienIP2025";
+
+    /**
+     * API Đăng ký người dùng mới
+     * Xử lý cho cả APPLICANT (Người nộp đơn) và EXAMINER (Người duyệt đơn)
+     */
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
-        // 1. Kiểm tra logic nghiệp vụ (Giữ nguyên của bạn)
-        if (userRepository.existsByEmail(user.getEmail())) {
-            return ResponseEntity.badRequest().body("Lỗi: Email đã được sử dụng!");
+    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
+        
+        // 1. Kiểm tra Email đã tồn tại trong Database chưa
+        if (userRepository.existsByEmail(request.getEmail())) {
+            return ResponseEntity.badRequest().body("Lỗi: Email này đã được sử dụng!");
         }
-        if (userRepository.existsByCccdNumber(user.getCccdNumber())) {
-            return ResponseEntity.badRequest().body("Lỗi: Số CCCD đã tồn tại trên hệ thống!");
+
+        // 2. Kiểm tra CCCD/Mã nhân viên đã tồn tại chưa (Dùng chung cột cccd_number)
+        if (userRepository.existsByCccdNumber(request.getCccdNumber())) {
+            String label = (request.getRole() == UserRole.EXAMINER) ? "Mã số nhân viên" : "Số CCCD";
+            return ResponseEntity.badRequest().body("Lỗi: " + label + " này đã tồn tại trên hệ thống!");
+        }
+
+        // 3. Kiểm tra mã xác thực nhân viên nếu role là Người duyệt đơn
+        if (request.getRole() == UserRole.EXAMINER) {
+            if (request.getSecurityCode() == null || !request.getSecurityCode().equals(STAFF_SECURITY_CODE)) {
+                return ResponseEntity.status(403).body("Lỗi: Mã code xác thực nhân viên không chính xác!");
+            }
         }
 
         try {
-            // 2. LOGIC MÃ HÓA MẬT KHẨU (Thêm mới)
-            // Lấy mật khẩu thô từ người dùng nhập -> Mã hóa nó -> Gán lại vào Object
-            String rawPassword = user.getPasswordHash();
-            String hashedPassword = passwordEncoder.encode(rawPassword);
-            user.setPasswordHash(hashedPassword);
+            // 4. Khởi tạo Entity User và ánh xạ dữ liệu từ DTO (RegisterRequest)
+            User user = new User();
+            user.setFullName(request.getFullName());
+            user.setDob(request.getDob());
+            user.setCccdNumber(request.getCccdNumber()); // Lưu CCCD hoặc Mã NV vào cột định danh duy nhất
+            user.setEmail(request.getEmail());
+            user.setPhoneNumber(request.getPhoneNumber());
+            user.setRole(request.getRole());
 
-            // 3. Lưu vào database ipms_db (Giữ nguyên của bạn)
-            User savedUser = userRepository.save(user);
-            return ResponseEntity.ok("Đăng ký thành công cho: " + savedUser.getFullName());
+            // 5. Logic mã hóa mật khẩu
+            // Lấy mật khẩu thô từ trường 'password' trong DTO gửi từ React
+            String rawPassword = request.getPassword();
+            String hashedPassword = passwordEncoder.encode(rawPassword);
+            user.setPasswordHash(hashedPassword); // Gán mật khẩu đã băm vào Entity để lưu xuống DB
+
+            // 6. Thực hiện lưu vào database ipms_db
+            userRepository.save(user);
             
+            String roleDisplayName = (request.getRole() == UserRole.EXAMINER) ? "Nhân viên" : "Người nộp đơn";
+            return ResponseEntity.ok("Đăng ký thành công vai trò " + roleDisplayName + ": " + user.getFullName());
+
         } catch (Exception e) {
+            // Trả về lỗi 500 nếu có sự cố phát sinh trong quá trình lưu dữ liệu
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
