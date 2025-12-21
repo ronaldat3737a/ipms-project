@@ -1,5 +1,7 @@
 package com.ipms.controller;
 
+import com.ipms.dto.LoginRequest;
+import com.ipms.dto.LoginResponse;
 import com.ipms.dto.RegisterRequest;
 import com.ipms.entity.User;
 import com.ipms.entity.UserRole;
@@ -75,4 +77,26 @@ public class AuthController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody LoginRequest request) {
+    // 1. Tìm người dùng theo email
+    return userRepository.findByEmail(request.getEmail())
+        .map(user -> {
+            // 2. So khớp mật khẩu (Mật khẩu thô vs Mật khẩu đã mã hóa)
+            if (passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+                // 3. Nếu khớp, trả về thông tin vai trò
+                return ResponseEntity.ok(new LoginResponse(
+                    "Đăng nhập thành công!", 
+                    user.getRole(), 
+                    user.getFullName()
+                ));
+            } else {
+                return ResponseEntity.badRequest().body("Mật khẩu không chính xác!");
+            }
+        })
+        .orElse(ResponseEntity.badRequest().body("Email không tồn tại trên hệ thống!"));
+    }
+   
 }

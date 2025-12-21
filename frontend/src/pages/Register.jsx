@@ -53,7 +53,7 @@ const Register = () => {
       return;
     }
 
-    // Logic kiểm tra mã xác thực dành cho Người duyệt đơn
+    // Logic kiểm tra mã xác thực dành cho Người duyệt đơn ngay tại Frontend
     if (role === "EXAMINER" && formData.securityCode !== "NhanVienIP2025") {
       alert(
         "Mã code tạo nhân viên không chính xác. Bạn không có quyền đăng ký vai trò này!"
@@ -67,15 +67,19 @@ const Register = () => {
       return;
     }
 
-    // Đóng gói dữ liệu chuẩn để gửi lên Spring Boot
+    /**
+     * Đóng gói dữ liệu gửi lên Spring Boot.
+     * Lưu ý: Tên các trường (keys) phải khớp 100% với RegisterRequest DTO ở Backend.
+     */
     const userData = {
-      role: role,
       fullName: formData.fullName,
       dob: formData.dob,
       cccdNumber: formData.cccdNumber,
       email: formData.email,
       phoneNumber: formData.phoneNumber,
-      passwordHash: formData.password,
+      password: formData.password, // Khớp với trường 'password' trong DTO
+      role: role,
+      securityCode: formData.securityCode, // Đã thêm để Backend kiểm tra
     };
 
     try {
@@ -84,7 +88,7 @@ const Register = () => {
         userData
       );
 
-      // Ép kiểu dữ liệu trả về thành chuỗi văn bản để tránh lỗi [object Object]
+      // Xử lý phản hồi thành công (tránh lỗi [object Object])
       const successMsg =
         typeof response.data === "string"
           ? response.data
@@ -93,6 +97,7 @@ const Register = () => {
       alert("Thông báo: " + successMsg);
       navigate("/login");
     } catch (error) {
+      // Xử lý lỗi từ Server (tránh lỗi [object Object])
       const errorData = error.response?.data;
       const errorMsg =
         typeof errorData === "string"
@@ -113,7 +118,7 @@ const Register = () => {
       </div>
 
       <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-stretch">
-        {/* CỘT TRÁI: FORM ĐĂNG KÝ (Sát thiết kế mẫu) */}
+        {/* CỘT TRÁI: FORM ĐĂNG KÝ */}
         <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
           <h2 className="text-2xl font-bold text-center mb-8">
             Tạo tài khoản mới
@@ -174,7 +179,9 @@ const Register = () => {
             <InputField
               label={role === "APPLICANT" ? "Số CCCD" : "Mã số nhân viên"}
               name="cccdNumber"
-              placeholder="VD: 012345678912"
+              placeholder={
+                role === "APPLICANT" ? "VD: 012345678912" : "VD: NV1234"
+              }
               required
               value={formData.cccdNumber}
               onChange={handleChange}
@@ -230,7 +237,7 @@ const Register = () => {
                 value={formData.securityCode}
                 onChange={handleChange}
                 toggle={() => setShowStaffCode(!showStaffCode)}
-                placeholder="VD: abcd1234"
+                placeholder="Nhập mã xác thực nhân viên"
               />
             )}
 
@@ -257,7 +264,7 @@ const Register = () => {
               onClick={handleRegister}
               className={`w-full py-4 rounded-xl font-bold mt-6 transition shadow-sm text-white ${
                 role === "EXAMINER"
-                  ? "bg-blue-400 hover:bg-blue-500"
+                  ? "bg-blue-500 hover:bg-blue-600"
                   : "bg-blue-300 hover:bg-blue-400"
               }`}
             >
@@ -276,7 +283,7 @@ const Register = () => {
           </div>
         </div>
 
-        {/* CỘT PHẢI: THÔNG TIN BỔ TRỢ (Giữ nguyên giao diện chuẩn) */}
+        {/* CỘT PHẢI: THÔNG TIN BỔ TRỢ */}
         <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-10">
           <div>
             <h3 className="text-lg font-bold mb-8">
@@ -310,7 +317,7 @@ const Register = () => {
   );
 };
 
-// --- CÁC THÀNH PHẦN PHỤ TRỢ (Dùng chung cho cả 2 role) ---
+// --- CÁC THÀNH PHẦN PHỤ TRỢ ---
 
 const InputField = ({
   label,
@@ -332,7 +339,7 @@ const InputField = ({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
+      className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-400 transition"
     />
   </div>
 );
@@ -357,7 +364,7 @@ const PasswordField = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-xl p-3 pr-10 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
+        className="w-full border border-gray-200 rounded-xl p-3 pr-10 outline-none focus:border-blue-400 transition"
       />
       <button
         type="button"
