@@ -5,11 +5,12 @@ import { useFilingData } from "./FilingContext";
 
 const Step6_Submission = () => {
   const navigate = useNavigate();
-  // Lấy dữ liệu từ Context
+  // Lấy dữ liệu từ Context chứa toàn bộ thông tin từ Bước 1 đến Bước 5
   const { formData } = useFilingData(); 
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentStep = 6;
   const steps = [
     { id: 1, label: "Thông tin chung" },
@@ -20,19 +21,46 @@ const Step6_Submission = () => {
     { id: 6, label: "Nộp đơn" },
   ];
 
-  // Logic nộp hồ sơ chính thức
+  /**
+   * Logic nộp hồ sơ chính thức kết nối với Backend
+   */
   const handleSubmit = async () => {
     if (!isConfirmed) return;
     
     setIsSubmitting(true);
     
-    // Giả lập gọi API nộp đơn trong 2 giây
-    setTimeout(() => {
+    try {
+      // Gửi yêu cầu POST tới API Spring Boot
+      const response = await fetch("http://localhost:8080/api/patents/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Nếu bạn có token đăng nhập, hãy thêm vào đây
+          // "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        // Nhận kết quả trả về từ Backend (đối tượng Application đã lưu)
+        const result = await response.json();
+        console.log("Hồ sơ đã lưu thành công:", result);
+
+        // Điều hướng đến trang thành công và truyền appNo (Mã số đơn thật từ Trigger DB)
+        // appNo sẽ có định dạng như SC-2025-00001
+        navigate("/applicant/patent/success", { 
+          state: { appNo: result.appNo } 
+        }); 
+      } else {
+        const errorData = await response.text();
+        alert(`Nộp đơn thất bại: ${errorData || "Lỗi máy chủ"}. Vui lòng kiểm tra lại dữ liệu.`);
+      }
+    } catch (error) {
+      console.error("Lỗi kết nối API:", error);
+      alert("Không thể kết nối tới Backend. Hãy chắc chắn bạn đã chạy server Spring Boot ở cổng 8080.");
+    } finally {
       setIsSubmitting(false);
-      // THAY ĐỔI: Điều hướng đến trang thành công
-      // Chúng ta không gọi clearFormData ở đây để trang SuccessPage vẫn có thể đọc được dữ liệu hiển thị tóm tắt
-      navigate("/applicant/patent/success"); 
-    }, 2000);
+    }
   };
 
   return (
@@ -50,10 +78,21 @@ const Step6_Submission = () => {
         </button>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-xs font-bold text-gray-800">Trần Văn An</p>
-            <p className="text-[10px] text-gray-400 font-medium">an.tran@example.com</p>
+            {/* Thay tên Trần Văn An bằng biến thực, giữ nguyên class CSS */}
+            <p className="text-xs font-bold text-gray-800">
+              {currentUser.fullName || "Người dùng"}
+            </p>
+            {/* Thay email bằng biến thực, giữ nguyên class CSS */}
+            <p className="text-[10px] text-gray-400 font-medium">
+              {currentUser.email || "Chưa cập nhật email"}
+            </p>
           </div>
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" className="w-8 h-8 rounded-full border" />
+          {/* Thay đổi seed=Felix thành seed={tên người dùng} để ảnh đại diện đổi theo người đăng nhập */}
+          <img 
+            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.fullName || 'Felix'}`} 
+            alt="Avatar" 
+            className="w-8 h-8 rounded-full border" 
+          />
         </div>
       </header>
 
@@ -127,7 +166,7 @@ const Step6_Submission = () => {
                   className={`flex-1 py-3 rounded-xl font-bold text-sm text-white shadow-md transition flex items-center justify-center gap-2
                     ${isConfirmed && !isSubmitting ? "bg-blue-400 hover:bg-blue-500" : "bg-blue-200 cursor-not-allowed shadow-none"}`}
                 >
-                  {isSubmitting ? "Đang xử lý..." : "Nộp đơn"}
+                  {isSubmitting ? "Đang nộp..." : "Nộp đơn"}
                 </button>
               </div>
             </div>

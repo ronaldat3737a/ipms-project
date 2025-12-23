@@ -10,6 +10,7 @@ const Step4_Claims = () => {
   const navigate = useNavigate();
   const { formData, updateFormData } = useFilingData();
 
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentStep = 4;
   const steps = [
     { id: 1, label: "Thông tin chung" },
@@ -56,10 +57,21 @@ const Step4_Claims = () => {
         </button>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-xs font-bold text-gray-800">Trần Văn An</p>
-            <p className="text-[10px] text-gray-400 font-medium">an.tran@example.com</p>
+            {/* Thay tên Trần Văn An bằng biến thực, giữ nguyên class CSS */}
+            <p className="text-xs font-bold text-gray-800">
+              {currentUser.fullName || "Người dùng"}
+            </p>
+            {/* Thay email bằng biến thực, giữ nguyên class CSS */}
+            <p className="text-[10px] text-gray-400 font-medium">
+              {currentUser.email || "Chưa cập nhật email"}
+            </p>
           </div>
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" className="w-8 h-8 rounded-full border" />
+          {/* Thay đổi seed=Felix thành seed={tên người dùng} để ảnh đại diện đổi theo người đăng nhập */}
+          <img 
+            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.fullName || 'Felix'}`} 
+            alt="Avatar" 
+            className="w-8 h-8 rounded-full border" 
+          />
         </div>
       </header>
 

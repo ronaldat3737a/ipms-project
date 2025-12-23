@@ -6,7 +6,8 @@ import {
 } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
-const Step5_FeePayment = () => {
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const Step5_FeePayment = () => {
   const navigate = useNavigate();
   const { formData, updateFormData } = useFilingData();
   const [copied, setCopied] = useState(false);
@@ -38,10 +39,21 @@ const Step5_FeePayment = () => {
         </button>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-xs font-bold text-gray-800">Trần Văn An</p>
-            <p className="text-[10px] text-gray-400 font-medium">an.tran@example.com</p>
+            {/* Thay tên Trần Văn An bằng biến thực, giữ nguyên class CSS */}
+            <p className="text-xs font-bold text-gray-800">
+              {currentUser.fullName || "Người dùng"}
+            </p>
+            {/* Thay email bằng biến thực, giữ nguyên class CSS */}
+            <p className="text-[10px] text-gray-400 font-medium">
+              {currentUser.email || "Chưa cập nhật email"}
+            </p>
           </div>
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" className="w-8 h-8 rounded-full border" />
+          {/* Thay đổi seed=Felix thành seed={tên người dùng} để ảnh đại diện đổi theo người đăng nhập */}
+          <img 
+            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.fullName || 'Felix'}`} 
+            alt="Avatar" 
+            className="w-8 h-8 rounded-full border" 
+          />
         </div>
       </header>
 

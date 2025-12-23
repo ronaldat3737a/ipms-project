@@ -4,7 +4,7 @@ import com.ipms.dto.LoginRequest;
 import com.ipms.dto.LoginResponse;
 import com.ipms.dto.RegisterRequest;
 import com.ipms.entity.User;
-import com.ipms.entity.UserRole;
+import com.ipms.entity.enums.UserRole;
 import com.ipms.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -90,7 +90,10 @@ public class AuthController {
                 return ResponseEntity.ok(new LoginResponse(
                     "Đăng nhập thành công!", 
                     user.getRole(), 
-                    user.getFullName()
+                    user.getFullName(),
+                    user.getEmail(),      
+                    user.getCccdNumber(), 
+                    user.getId()
                 ));
             } else {
                 return ResponseEntity.badRequest().body("Mật khẩu không chính xác!");

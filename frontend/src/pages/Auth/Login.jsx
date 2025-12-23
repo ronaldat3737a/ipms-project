@@ -23,8 +23,8 @@ const Login = () => {
     });
   };
 
-    // 3. Logic xử lý Đăng nhập
-    const handleLogin = async (e) => {
+  // 3. Logic xử lý Đăng nhập (Đã cập nhật logic lưu trữ)
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     if (!formData.email || !formData.password) {
@@ -38,15 +38,18 @@ const Login = () => {
         password: formData.password
       });
 
-      // Lấy role từ Backend trả về
-      const { role, fullName } = response.data;
+      // Dữ liệu người dùng thực tế từ Database (id, fullName, role, email, cccdNumber...)
+      const userData = response.data; 
       
-      alert("Đăng nhập thành công! Xin chào " + fullName);
+      // QUAN TRỌNG: Lưu toàn bộ thông tin user vào localStorage để xóa bỏ dữ liệu giả
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      alert("Đăng nhập thành công! Xin chào " + userData.fullName);
 
-      // Chuyển hướng dựa trên vai trò
-      if (role === "APPLICANT") {
+      // Chuyển hướng dựa trên vai trò thật từ DB
+      if (userData.role === "APPLICANT") {
         navigate("/applicant-dashboard");
-      } else if (role === "EXAMINER") {
+      } else if (userData.role === "EXAMINER") {
         navigate("/examiner-dashboard");
       }
       
@@ -54,7 +57,7 @@ const Login = () => {
       const errorMsg = error.response?.data || "Email hoặc mật khẩu không chính xác";
       alert("Lỗi đăng nhập: " + (typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg));
     }
-    };
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 px-4 font-sans text-gray-800">
@@ -62,7 +65,7 @@ const Login = () => {
       {/* Khối Card Đăng nhập */}
       <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center">
         
-        {/* Logo (Hình kim cương xanh giống ảnh mẫu) */}
+        {/* Logo */}
         <div className="mb-6">
           <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center rotate-45 shadow-lg">
             <div className="w-4 h-4 border-2 border-white rotate-45"></div>
@@ -82,6 +85,7 @@ const Login = () => {
                 type="email"
                 name="email"
                 placeholder="Nhập email"
+                autoComplete="email"
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
@@ -97,6 +101,7 @@ const Login = () => {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Nhập mật khẩu của bạn"
+                autoComplete="current-password"
                 value={formData.password}
                 onChange={handleChange}
                 className="w-full border border-gray-200 rounded-xl p-3 pr-10 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
@@ -138,11 +143,10 @@ const Login = () => {
           {/* Divider "Hoặc" */}
           <div className="relative flex items-center justify-center my-8">
             <div className="flex-grow border-t border-gray-200"></div>
-            <span className="flex-shrink mx-4 text-gray-400 text-xs uppercase tracking-widest">Hoặc</span>
+            <span className="mx-4 text-gray-400 text-xs uppercase tracking-widest">Hoặc</span>
             <div className="flex-grow border-t border-gray-200"></div>
           </div>
 
-          {/* Nút Đăng nhập Cổng định danh */}
           <button
             type="button"
             className="w-full bg-white border border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold hover:bg-gray-50 transition shadow-sm active:scale-[0.98]"
@@ -150,7 +154,6 @@ const Login = () => {
             Đăng nhập bằng Cổng định danh
           </button>
 
-          {/* Link sang Đăng ký */}
           <p className="text-center text-sm text-gray-500 mt-6">
             Chưa có tài khoản?{" "}
             <span
@@ -163,7 +166,6 @@ const Login = () => {
         </form>
       </div>
 
-      {/* Footer */}
       <footer className="mt-16 text-xs text-gray-400">
         © 2025 IPMS Sáng Chế & Giải Pháp. All rights reserved.
       </footer>

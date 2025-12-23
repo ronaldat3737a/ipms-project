@@ -1,8 +1,9 @@
 package com.ipms.dto;
 
-import com.ipms.entity.UserRole;
 import lombok.Data;
 import java.time.LocalDate;
+
+import com.ipms.entity.enums.UserRole;
 
 @Data
 public class RegisterRequest {

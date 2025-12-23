@@ -1,17 +1,35 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle, Bell } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
 const SuccessPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { formData, clearFormData } = useFilingData();
+
+  // Lấy mã số đơn (appNo) được truyền từ Step 6 qua state của router
+  const appNo = location.state?.appNo || "Đang cập nhật...";
+  
+  // Lấy ngày hiện tại định dạng DD/MM/YYYY
+  const today = new Date().toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 
   // Logic khi quay lại Dashboard
   const handleReturnDashboard = () => {
-    clearFormData(); // Xóa dữ liệu tạm thời sau khi đã xem xong kết quả
+    clearFormData(); // Xóa dữ liệu tạm thời trong Context sau khi nộp thành công
     navigate("/applicant-dashboard");
   };
+
+  // Bảo vệ trang: Nếu người dùng truy cập trực tiếp vào link này mà không qua nộp đơn, đẩy về trang chủ
+  useEffect(() => {
+    if (!location.state) {
+      // navigate("/applicant/patent"); // Bỏ comment nếu bạn muốn bảo mật chặt chẽ
+    }
+  }, [location, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-800">
@@ -38,19 +56,33 @@ const SuccessPage = () => {
             <CheckCircle size={40} className="text-green-500" />
           </div>
 
-          <h1 className="text-3xl font-black mb-4 tracking-tight">Nộp đơn thành công!</h1>
+          <h1 className="text-3xl font-black mb-4 tracking-tight text-center">Nộp đơn thành công!</h1>
           <p className="text-gray-500 text-center text-sm font-medium leading-relaxed max-w-md mb-10">
             Hệ thống đã tiếp nhận hồ sơ của bạn và chuyển đến Cục Sở hữu trí tuệ để xử lý.
           </p>
 
-          {/* Tóm tắt đơn đăng ký */}
+          {/* Tóm tắt đơn đăng ký - HIỂN THỊ DỮ LIỆU THẬT */}
           <section className="w-full bg-gray-50/50 rounded-2xl p-8 border border-gray-100 mb-10">
             <h3 className="font-bold text-sm mb-6 uppercase tracking-wider text-gray-700">Tóm tắt đơn đăng ký</h3>
             <div className="space-y-4">
-              <InfoRow label="Mã số đơn tạm thời:" value="VN/2025/12345" />
-              <InfoRow label="Ngày nộp đơn:" value="22/12/2025" />
-              <InfoRow label="Loại đơn:" value={formData.appType || "Sáng chế"} />
-              <InfoRow label="Trạng thái hiện tại:" value="Đang thẩm định hình thức" isStatus />
+              <InfoRow 
+                label="Mã số đơn chính thức:" 
+                value={appNo} 
+                isHighlight 
+              />
+              <InfoRow 
+                label="Ngày nộp đơn:" 
+                value={today} 
+              />
+              <InfoRow 
+                label="Loại đơn:" 
+                value={formData.appType || "Sáng chế / Giải pháp"} 
+              />
+              <InfoRow 
+                label="Trạng thái hiện tại:" 
+                value="Đã tiếp nhận (Chờ thẩm định)" 
+                isStatus 
+              />
             </div>
           </section>
 
@@ -59,21 +91,21 @@ const SuccessPage = () => {
             <h3 className="font-bold text-center text-lg">Các bước tiếp theo</h3>
             <ul className="space-y-4">
               <li className="flex gap-4">
-                <span className="w-1.5 h-1.5 bg-black rounded-full mt-2 shrink-0"></span>
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 shrink-0"></span>
                 <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                  <span className="font-bold text-gray-800">Thẩm định hình thức (Dự kiến 01 tháng):</span> Cục Sở hữu trí tuệ sẽ xem xét tính hợp lệ của hồ sơ.
+                  <span className="font-bold text-gray-800">Thẩm định hình thức (Dự kiến 01 tháng):</span> Cục Sở hữu trí tuệ sẽ xem xét tính hợp lệ của hồ sơ dựa trên mã số đơn <span className="font-mono font-bold text-blue-600">{appNo}</span>.
                 </p>
               </li>
               <li className="flex gap-4">
                 <span className="w-1.5 h-1.5 bg-black rounded-full mt-2 shrink-0"></span>
                 <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                  <span className="font-bold text-gray-800">Thông báo kết quả:</span> Bạn sẽ nhận được thông báo về kết quả thẩm định hình thức qua email.
+                  <span className="font-bold text-gray-800">Thông báo kết quả:</span> Bạn sẽ nhận được thông báo về kết quả thẩm định hình thức qua email đã đăng ký.
                 </p>
               </li>
               <li className="flex gap-4">
                 <span className="w-1.5 h-1.5 bg-black rounded-full mt-2 shrink-0"></span>
                 <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                  <span className="font-bold text-gray-800">Chỉnh sửa hồ sơ:</span> Nếu có thiếu sót, bạn sẽ có cơ hội bổ sung hoặc chỉnh sửa hồ sơ trong thời gian quy định.
+                  <span className="font-bold text-gray-800">Quản lý hồ sơ:</span> Bạn có thể theo dõi tiến độ chi tiết tại mục "Đơn của tôi" trên Dashboard.
                 </p>
               </li>
             </ul>
@@ -96,11 +128,18 @@ const SuccessPage = () => {
   );
 };
 
-// Helper Component
-const InfoRow = ({ label, value, isStatus }) => (
-  <div className="flex justify-between items-center text-sm">
+/**
+ * Helper Component cập nhật để hiển thị nổi bật mã đơn
+ */
+const InfoRow = ({ label, value, isStatus, isHighlight }) => (
+  <div className="flex justify-between items-center text-sm border-b border-gray-100/50 pb-2 last:border-0 last:pb-0">
     <span className="text-gray-500 font-medium">{label}</span>
-    <span className={`font-bold ${isStatus ? "text-gray-800" : "text-gray-800"}`}>{value}</span>
+    <span className={`font-bold ${
+      isStatus ? "text-green-600 bg-green-50 px-2 py-0.5 rounded text-[11px]" : 
+      isHighlight ? "text-blue-600 font-mono text-base" : "text-gray-800"
+    }`}>
+      {value}
+    </span>
   </div>
 );
 

@@ -30,6 +30,9 @@ const Step1_GeneralInfo = () => {
   // Tính số từ cho phần tóm tắt
   const wordCount = formData.summary.trim() ? formData.summary.trim().split(/\s+/).length : 0;
 
+  // Lấy thông tin người dùng từ localStorage đã lưu khi đăng nhập
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-800">
       {/* --- HEADER --- */}
@@ -45,10 +48,21 @@ const Step1_GeneralInfo = () => {
         </button>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-xs font-bold text-gray-800">Trần Văn An</p>
-            <p className="text-[10px] text-gray-400 font-medium">an.tran@example.com</p>
+            {/* Thay tên Trần Văn An bằng biến thực, giữ nguyên class CSS */}
+            <p className="text-xs font-bold text-gray-800">
+              {currentUser.fullName || "Người dùng"}
+            </p>
+            {/* Thay email bằng biến thực, giữ nguyên class CSS */}
+            <p className="text-[10px] text-gray-400 font-medium">
+              {currentUser.email || "Chưa cập nhật email"}
+            </p>
           </div>
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" className="w-8 h-8 rounded-full border" />
+          {/* Thay đổi seed=Felix thành seed={tên người dùng} để ảnh đại diện đổi theo người đăng nhập */}
+          <img 
+            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.fullName || 'Felix'}`} 
+            alt="Avatar" 
+            className="w-8 h-8 rounded-full border" 
+          />
         </div>
       </header>
 
