@@ -13,6 +13,11 @@ import ApplicantDashboard from "./pages/Applicant/ApplicantDashboard";
 // 4. Nhóm Người duyệt đơn (Examiner) - Nằm trong folder Examiner
 import ExaminerDashboard from "./pages/Examiner/ExaminerDashboard";
 
+// src/App.jsx
+import PatentList from "./pages/Applicant/Patent/PatentList";
+
+import PatentFiling from "./pages/Applicant/Patent/PatentFiling";
+
 function App() {
   return (
     <Router>
@@ -31,6 +36,11 @@ function App() {
         {/* --- PHÂN HỆ NGƯỜI DUYỆT ĐƠN (EXAMINER) --- */}
         <Route path="/examiner-dashboard" element={<ExaminerDashboard />} />
         {/* Sau này các đường dẫn con sẽ như: /examiner/review-patent... */}
+
+        <Route path="/applicant/patent" element={<PatentList />} />
+
+        <Route path="/applicant/patent/filing" element={<PatentFiling />} />
+
       </Routes>
     </Router>
   );

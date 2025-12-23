@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate để điều hướng
 import {
   LayoutDashboard,
   FileText,
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 
 const ApplicantDashboard = () => {
+  const navigate = useNavigate(); // Khởi tạo hook navigate
+
   // Dữ liệu giả lập danh sách hồ sơ
   const recentApplications = [
     {
@@ -91,15 +94,25 @@ const ApplicantDashboard = () => {
             icon={<LayoutDashboard size={20} />}
             label="Dashboard"
             active
+            onClick={() => navigate("/applicant-dashboard")}
           />
-          <NavItem icon={<FileText size={20} />} label="Sáng chế/ GPHI" />
+          {/* Gán sự kiện chuyển hướng sang trang Sáng chế/GPHI */}
+          <NavItem 
+            icon={<FileText size={20} />} 
+            label="Sáng chế/ GPHI" 
+            onClick={() => navigate("/applicant/patent")} 
+          />
           <NavItem icon={<Bookmark size={20} />} label="Nhãn hiệu" />
           <NavItem icon={<PenTool size={20} />} label="Kiểu dáng CN" />
           <NavItem icon={<FileStack size={20} />} label="Hồ sơ của tôi" />
         </nav>
 
         <div className="p-4 border-t border-gray-100">
-          <button className="flex items-center gap-3 text-gray-500 hover:text-red-500 w-full px-4 py-3 transition">
+          {/* Gán sự kiện quay về trang Landing khi ấn Đăng xuất */}
+          <button 
+            onClick={() => navigate("/")}
+            className="flex items-center gap-3 text-gray-500 hover:text-red-500 w-full px-4 py-3 transition"
+          >
             <LogOut size={20} />
             <span className="font-medium">Đăng xuất</span>
           </button>
@@ -281,8 +294,10 @@ const ApplicantDashboard = () => {
 
 // --- HELPER COMPONENTS ---
 
-const NavItem = ({ icon, label, active = false }) => (
+// Cập nhật NavItem để nhận props onClick
+const NavItem = ({ icon, label, active = false, onClick }) => (
   <div
+    onClick={onClick}
     className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
       active ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"
     }`}
