@@ -106,8 +106,11 @@ const PatentList = () => {
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8">
           <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
             <span>Sáng chế</span>
-            <button onClick={() => navigate("/applicant/patent/filing")}className="bg-blue-500 text-white px-4 py-1.5 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-600 transition ml-4">
-              <Plus size={16}/> Nộp đơn mới
+            <button
+              onClick={() => navigate("/applicant/patent/step1")} // Đường dẫn mới khớp với App.jsx
+              className="bg-blue-500 text-white px-4 py-1.5 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-600 transition ml-4"
+            >
+              <Plus size={16} /> Nộp đơn mới
             </button>
           </div>
           <div className="flex items-center gap-6">
