@@ -22,40 +22,49 @@ const Step6_Submission = () => {
   ];
 
   /**
-   * Logic nộp hồ sơ chính thức kết nối với Backend
+   * Logic nộp hồ sơ chính thức - Bản đơn giản (Không Token)
+   * Đảm bảo chính xác URL và xóa sạch dữ liệu sau khi thành công.
    */
   const handleSubmit = async () => {
-    if (!isConfirmed) return;
+    // 1. Kiểm tra xem người dùng đã tích vào ô cam đoan chưa
+    if (!isConfirmed) {
+      alert("Vui lòng xác nhận cam đoan thông tin trước khi nộp đơn.");
+      return;
+    }
     
     setIsSubmitting(true);
     
     try {
-      // Gửi yêu cầu POST tới API Spring Boot
+      // 2. Gửi yêu cầu POST tới API Spring Boot (Không cần Header Authorization)
       const response = await fetch("http://localhost:8080/api/patents/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Nếu bạn có token đăng nhập, hãy thêm vào đây
-          // "Authorization": `Bearer ${localStorage.getItem("token")}`
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData), // Gửi toàn bộ dữ liệu từ Context
       });
 
       if (response.ok) {
-        // Nhận kết quả trả về từ Backend (đối tượng Application đã lưu)
+        // 3. Nhận kết quả từ Backend (Chứa mã đơn appNo)
         const result = await response.json();
         console.log("Hồ sơ đã lưu thành công:", result);
 
-        // Điều hướng đến trang thành công và truyền appNo (Mã số đơn thật từ Trigger DB)
-        // appNo sẽ có định dạng như SC-2025-00001
+        // 4. BƯỚC QUAN TRỌNG NHẤT: Xóa sạch dữ liệu cũ
+        // Gọi hàm clearFormData từ Context để lần sau nộp đơn mới sẽ trắng tinh
+        clearFormData(); 
+
+        // 5. Điều hướng đến trang thành công
+        // Truyền appNo (ví dụ: SC-2025-0001) sang trang tiếp theo để hiển thị cho người dùng
         navigate("/applicant/patent/success", { 
-          state: { appNo: result.appNo } 
+          state: { appNo: result.appNo || "Đang xử lý" } 
         }); 
       } else {
+        // Xử lý khi Backend báo lỗi (Ví dụ: Thiếu trường dữ liệu, lỗi DB...)
         const errorData = await response.text();
-        alert(`Nộp đơn thất bại: ${errorData || "Lỗi máy chủ"}. Vui lòng kiểm tra lại dữ liệu.`);
+        alert(`Nộp đơn thất bại: ${errorData || "Lỗi máy chủ"}. Vui lòng kiểm tra lại.`);
       }
     } catch (error) {
+      // Xử lý lỗi kết nối (Backend chưa chạy, sai URL, sai cổng...)
       console.error("Lỗi kết nối API:", error);
       alert("Không thể kết nối tới Backend. Hãy chắc chắn bạn đã chạy server Spring Boot ở cổng 8080.");
     } finally {
