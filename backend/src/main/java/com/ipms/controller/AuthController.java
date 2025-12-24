@@ -93,7 +93,10 @@ public class AuthController {
                     user.getFullName(),
                     user.getEmail(),      
                     user.getCccdNumber(), 
-                    user.getId()
+                    user.getId(),
+                    user.getDob(),          
+                    user.getPhoneNumber()
+
                 ));
             } else {
                 return ResponseEntity.badRequest().body("Mật khẩu không chính xác!");

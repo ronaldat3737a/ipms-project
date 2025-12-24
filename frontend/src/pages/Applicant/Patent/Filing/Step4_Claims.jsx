@@ -8,7 +8,8 @@ import { useFilingData } from "./FilingContext";
 
 const Step4_Claims = () => {
   const navigate = useNavigate();
-  const { formData, updateFormData } = useFilingData();
+  // Đoạn mới: Thêm clearFormData để có thể xóa dữ liệu
+  const { formData, updateFormData, clearFormData } = useFilingData();
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentStep = 4;
@@ -51,10 +52,25 @@ const Step4_Claims = () => {
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-800">
       {/* Header */}
       <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white sticky top-0 z-10">
-        <button onClick={() => navigate("/applicant/patent")} className="flex items-center gap-2 text-gray-500 text-sm font-medium">
-          <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center"><X size={14} /></div>
-          Hủy bỏ
-        </button>
+        <button 
+  onClick={() => {
+    // Hiện hộp thoại hỏi ý kiến người dùng
+    const isConfirm = window.confirm(
+      "Hệ thống sẽ xóa toàn bộ dữ liệu bạn đã nhập ở tất cả các bước. Bạn có chắc chắn muốn hủy bỏ không?"
+    );
+
+    if (isConfirm) {
+      clearFormData(); // 1. Quét sạch dữ liệu trong bộ nhớ (Context & Session)
+      navigate("/applicant/patent"); // 2. Sau đó mới quay về Dashboard
+    }
+  }}
+  className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium"
+>
+  <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center">
+    <X size={14} />
+  </div>
+  Hủy bỏ
+</button>
         <div className="flex items-center gap-3">
           <div className="text-right">
             {/* Thay tên Trần Văn An bằng biến thực, giữ nguyên class CSS */}

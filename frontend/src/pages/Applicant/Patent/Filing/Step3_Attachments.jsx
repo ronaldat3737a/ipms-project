@@ -2,14 +2,18 @@ import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   X, CheckCircle2, ChevronLeft, ChevronRight, 
-  Upload, FileText, Trash2, AlertCircle, Eye, Download 
+  Upload, FileText, Trash2, Info
 } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
+// Cấu hình thư viện PDF.js
+import * as pdfjsLib from "pdfjs-dist";
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
 const Step3_Attachments = () => {
   const navigate = useNavigate();
-  const { formData, updateFormData } = useFilingData();
-  const fileInputRef = useRef(null);
+  // Đoạn mới: Thêm clearFormData để có thể xóa dữ liệu
+  const { formData, updateFormData, clearFormData } = useFilingData();
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentStep = 3;
@@ -23,35 +27,60 @@ const Step3_Attachments = () => {
   ];
 
   /**
-   * Logic xử lý khi chọn tệp tin
+   * Logic xử lý khi chọn tệp tin và Đếm số trang PDF
    */
-  const handleFileChange = (e, category, docType) => {
+  const handleFileChange = async (e, category, docType) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Trích xuất metadata thực tế từ file
+    let pageCount = 0;
+
+    // CHỈ TÍNH TRANG CHO BẢN MÔ TẢ VÀ LÀ FILE PDF
+    if (docType === "BAN_MO_TA" && file.type === "application/pdf") {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        pageCount = pdf.numPages;
+      } catch (error) {
+        console.error("Không thể đọc số trang PDF:", error);
+      }
+    }
+
     const newAttachment = {
-      id: crypto.randomUUID(), // ID tạm để quản lý giao diện
-      category: category,      // VD: TAI_LIEU_KY_THUAT
-      docType: docType,        // VD: BAN_MO_TA
+      id: crypto.randomUUID(),
+      category: category,
+      docType: docType,
       fileName: file.name,
       fileSize: file.size,
       extension: file.name.split('.').pop().toLowerCase(),
-      fileUrl: `uploads/${file.name}`, // Giả lập URL (Thực tế sẽ là link S3/Cloudinary)
+      fileUrl: `uploads/${file.name}`,
       status: "HOAN_TAT"
     };
 
-    // Cập nhật vào danh sách attachments trong Context
-    // Nếu loại tài liệu này đã tồn tại thì ghi đè, nếu chưa thì thêm mới
     const updatedAttachments = [...formData.attachments].filter(a => a.docType !== docType);
-    updateFormData({
+    
+    // Cập nhật attachments và totalPages (nếu có) vào Context
+    const updatePayload = {
       attachments: [...updatedAttachments, newAttachment]
-    });
+    };
+    
+    if (pageCount > 0) {
+      updatePayload.totalPages = pageCount;
+    }
+
+    updateFormData(updatePayload);
   };
 
   const removeFile = (docType) => {
     const filtered = formData.attachments.filter(a => a.docType !== docType);
-    updateFormData({ attachments: filtered });
+    const updatePayload = { attachments: filtered };
+    
+    // Nếu xóa bản mô tả thì reset số trang về 0
+    if (docType === "BAN_MO_TA") {
+      updatePayload.totalPages = 0;
+    }
+    
+    updateFormData(updatePayload);
   };
 
   const getFileByDocType = (docType) => {
@@ -69,34 +98,36 @@ const Step3_Attachments = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-800">
-      {/* Header (Giữ nguyên) */}
       <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white sticky top-0 z-10">
-        <button onClick={() => navigate("/applicant/patent")} className="flex items-center gap-2 text-gray-500 text-sm font-medium">
-          <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center"><X size={14} /></div>
-          Hủy bỏ
-        </button>
+        <button 
+  onClick={() => {
+    // Hiện hộp thoại hỏi ý kiến người dùng
+    const isConfirm = window.confirm(
+      "Hệ thống sẽ xóa toàn bộ dữ liệu bạn đã nhập ở tất cả các bước. Bạn có chắc chắn muốn hủy bỏ không?"
+    );
+
+    if (isConfirm) {
+      clearFormData(); // 1. Quét sạch dữ liệu trong bộ nhớ (Context & Session)
+      navigate("/applicant/patent"); // 2. Sau đó mới quay về Dashboard
+    }
+  }}
+  className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium"
+>
+  <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center">
+    <X size={14} />
+  </div>
+  Hủy bỏ
+</button>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            {/* Thay tên Trần Văn An bằng biến thực, giữ nguyên class CSS */}
-            <p className="text-xs font-bold text-gray-800">
-              {currentUser.fullName || "Người dùng"}
-            </p>
-            {/* Thay email bằng biến thực, giữ nguyên class CSS */}
-            <p className="text-[10px] text-gray-400 font-medium">
-              {currentUser.email || "Chưa cập nhật email"}
-            </p>
+            <p className="text-xs font-bold text-gray-800">{currentUser.fullName || "Người dùng"}</p>
+            <p className="text-[10px] text-gray-400 font-medium">{currentUser.email || ""}</p>
           </div>
-          {/* Thay đổi seed=Felix thành seed={tên người dùng} để ảnh đại diện đổi theo người đăng nhập */}
-          <img 
-            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.fullName || 'Felix'}`} 
-            alt="Avatar" 
-            className="w-8 h-8 rounded-full border" 
-          />
+          <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.fullName}`} alt="Avatar" className="w-8 h-8 rounded-full border" />
         </div>
       </header>
 
       <div className="flex flex-grow overflow-hidden">
-        {/* Sidebar Tiến trình (Giữ nguyên) */}
         <aside className="w-72 border-r border-gray-100 p-8 shrink-0 bg-gray-50/30">
           <h2 className="text-lg font-bold mb-8 text-gray-700">Tiến trình nộp đơn</h2>
           <div className="space-y-6">
@@ -116,12 +147,10 @@ const Step3_Attachments = () => {
           </div>
         </aside>
 
-        {/* Nội dung chính Step 3 */}
         <main className="flex-grow p-12 overflow-y-auto bg-white">
           <div className="max-w-5xl mx-auto space-y-10">
             <h1 className="text-3xl font-bold italic">3. Tải lên tài liệu</h1>
 
-            {/* NHÓM TÀI LIỆU HÀNH CHÍNH */}
             <section className="space-y-4">
               <h3 className="text-lg font-bold text-gray-700">Nhóm tài liệu hành chính</h3>
               <FileSlot 
@@ -136,7 +165,6 @@ const Step3_Attachments = () => {
               />
             </section>
 
-            {/* NHÓM TÀI LIỆU KỸ THUẬT */}
             <section className="space-y-4">
               <h3 className="text-lg font-bold text-gray-700">Nhóm tài liệu kỹ thuật</h3>
               <div className="grid gap-4">
@@ -146,6 +174,7 @@ const Step3_Attachments = () => {
                   category="TAI_LIEU_KY_THUAT" 
                   docType="BAN_MO_TA"
                   fileData={getFileByDocType("BAN_MO_TA")}
+                  totalPages={formData.totalPages} // Truyền số trang vào
                   onFileSelect={handleFileChange}
                   onRemove={removeFile}
                 />
@@ -170,7 +199,7 @@ const Step3_Attachments = () => {
               </div>
             </section>
 
-            {/* BẢNG TỔNG HỢP (Dữ liệu thực từ Context) */}
+            {/* BẢNG TỔNG HỢP (Giữ nguyên giao diện) */}
             <section className="space-y-4">
               <h3 className="text-lg font-bold text-gray-700">Danh sách tệp đã chọn ({formData.attachments.length})</h3>
               <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
@@ -185,9 +214,7 @@ const Step3_Attachments = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {formData.attachments.length === 0 ? (
-                      <tr>
-                        <td colSpan="4" className="px-6 py-10 text-center text-gray-400 italic">Chưa có tệp nào được tải lên</td>
-                      </tr>
+                      <tr><td colSpan="4" className="px-6 py-10 text-center text-gray-400 italic">Chưa có tệp nào được tải lên</td></tr>
                     ) : (
                       formData.attachments.map((file) => (
                         <tr key={file.id} className="hover:bg-gray-50/50 transition">
@@ -209,14 +236,13 @@ const Step3_Attachments = () => {
               </div>
             </section>
 
-            {/* Điều hướng */}
             <div className="flex justify-end gap-4 pt-10">
               <button onClick={() => navigate("/applicant/patent/step2")} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm">
                 <ChevronLeft size={18} /> Quay lại
               </button>
               <button 
                 onClick={() => navigate("/applicant/patent/step4")}
-                disabled={formData.attachments.length < 3} // Bắt buộc ít nhất 3 file quan trọng
+                disabled={formData.attachments.length < 3}
                 className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition shadow-md text-white
                   ${formData.attachments.length >= 3 ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"}`}
               >
@@ -231,10 +257,12 @@ const Step3_Attachments = () => {
 };
 
 /**
- * Component Helper cho từng ô tải file
+ * Component Helper: Có thêm hộp hiển thị số trang cho Bản mô tả
  */
-const FileSlot = ({ label, required, optional, category, docType, fileData, onFileSelect, onRemove, hint }) => {
+// Cập nhật Component FileSlot trong Step3_Attachments.jsx
+const FileSlot = ({ label, required, optional, category, docType, fileData, onFileSelect, onRemove, hint, totalPages }) => {
   const inputRef = useRef(null);
+  const { updateFormData } = useFilingData(); // Lấy hàm update từ context
 
   return (
     <div className={`p-6 border rounded-2xl bg-white transition ${fileData ? 'border-green-200 bg-green-50/5' : 'border-gray-100 hover:border-blue-200'}`}>
@@ -243,14 +271,39 @@ const FileSlot = ({ label, required, optional, category, docType, fileData, onFi
           <div className="flex items-center gap-2">
             <span className="font-bold text-sm">{label}</span>
             {required && <span className="bg-red-50 text-red-500 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Bắt buộc</span>}
-            {optional && <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Tùy chọn</span>}
           </div>
-          {hint && <p className="text-[11px] text-gray-400 mt-1">{hint}</p>}
           
           {fileData ? (
-            <div className="mt-3 flex items-center gap-2 text-xs font-bold text-green-600">
-              <CheckCircle2 size={14} /> 
-              <span>Đã tải lên: {fileData.fileName}</span>
+            <div className="mt-3 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-green-600">
+                <CheckCircle2 size={14} /> 
+                <span>Đã tải lên: {fileData.fileName}</span>
+              </div>
+              
+              {/* PHẦN SỬA ĐỔI: Ô NHẬP SỐ TRANG THỦ CÔNG */}
+              {docType === "BAN_MO_TA" && (
+                <div className="flex flex-col gap-2 p-3 bg-amber-50 border border-amber-100 rounded-xl max-w-xs shadow-sm">
+                  <label className="text-[10px] font-black text-amber-700 uppercase flex items-center gap-1">
+                    <FileText size={12} /> Số trang tính phí
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="number"
+                      min="1"
+                      value={totalPages || ""}
+                      onChange={(e) => updateFormData({ totalPages: parseInt(e.target.value) || 0 })}
+                      placeholder="Nhập số trang..."
+                      className="w-20 p-1.5 border border-amber-200 rounded-lg text-sm font-black text-blue-600 outline-none focus:ring-2 ring-amber-300"
+                    />
+                    <span className="text-[10px] text-amber-600 font-medium italic">
+                      (Hệ thống đếm: {totalPages} trang)
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-amber-500 font-medium">
+                    * Vui lòng kiểm tra lại số trang để tính phí chính xác.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-[11px] text-gray-400 mt-1 italic text-blue-400">Chưa có tệp</p>
@@ -259,28 +312,23 @@ const FileSlot = ({ label, required, optional, category, docType, fileData, onFi
 
         <div className="flex items-center gap-3">
           {fileData && (
-            <button 
-              onClick={() => onRemove(docType)}
-              className="p-2 text-gray-300 hover:text-red-500 transition"
-            >
+            <button onClick={() => onRemove(docType)} className="p-2 text-gray-300 hover:text-red-500 transition">
               <Trash2 size={18} />
             </button>
           )}
-          
           <input 
             type="file" 
             ref={inputRef} 
             className="hidden" 
             onChange={(e) => onFileSelect(e, category, docType)}
-            accept=".pdf,.doc,.docx,.png,.jpg"
+            accept=".pdf"
           />
-          
           <button 
             onClick={() => inputRef.current.click()}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2
               ${fileData ? "border border-gray-200 text-gray-500 hover:bg-gray-50" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}
           >
-            <Upload size={14} /> {fileData ? "Thay đổi" : "Chọn tệp"}
+            <Upload size={14} /> {fileData ? "Thay đổi" : "Chọn tệp PDF"}
           </button>
         </div>
       </div>

@@ -1,14 +1,15 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from "react";
 
 const FilingContext = createContext();
 
 export const FilingProvider = ({ children }) => {
-  // Khởi tạo dữ liệu mặc định cho tất cả các bước
+  // 1. Logic khởi tạo dữ liệu (Khôi phục từ sessionStorage nếu có)
   const [formData, setFormData] = useState(() => {
-    // Thử khôi phục dữ liệu từ sessionStorage nếu người dùng lỡ refresh trang
-    const savedData = sessionStorage.getItem('patentFilingData');
-    return savedData ? JSON.parse(savedData) : {
-      // Bước 1: Thông tin chung
+    const savedData = sessionStorage.getItem("patentFilingData");
+    if (savedData) return JSON.parse(savedData);
+
+    return {
+      // BƯỚC 1: THÔNG TIN CHUNG
       appType: "Sáng chế",
       title: "",
       solutionDetail: "",
@@ -17,7 +18,7 @@ export const FilingProvider = ({ children }) => {
       ipcCode: "",
       summary: "",
 
-      // Bước 2: Chủ đơn
+      // BƯỚC 2: CHỦ ĐƠN
       ownerType: "Cá nhân",
       ownerName: "",
       ownerDob: "",
@@ -26,66 +27,42 @@ export const FilingProvider = ({ children }) => {
       ownerPhone: "",
       ownerEmail: "",
       ownerRepCode: "",
-      // Bước 5: Phí và thanh toán
-      totalFee: 542000,
-      paymentReceipt: null, // Lưu thông tin file chuyển khoản
-  
-      // Bước 2: Tác giả
-      authors: [{ id: Date.now(), fullName: "", nationality: "Việt Nam", idNumber: "" }],
+
+      // BƯỚC 2: TÁC GIẢ & CƠ SỞ QUYỀN
+      authors: [], 
       isOwnerSameAsAuthor: false,
-  
-      // Bước 2: Cơ sở quyền
       filingBasis: "Tác giả đồng thời là người nộp đơn",
-      
-      // Dự phòng cho các bước sau
-      // Bước 3: Tài liệu đính kèm
-      attachments: [
-        { id: 1, name: "Tờ khai DK sáng chế.pdf", type: "Hành chính", size: "1.2 MB", status: "Hoàn tất" },
-        { id: 2, name: "Bien lai nop phi.jpg", type: "Hành chính", size: "350 KB", status: "Hoàn tất" },
-        { id: 3, name: "Bản mô tả giải pháp.docx", type: "Kỹ thuật", size: "8.5 MB", status: "Phân tích" },
-        { id: 4, name: "Yeu cau bao ho.pdf", type: "Kỹ thuật", size: "1.1 MB", status: "Lỗi" },
-        { id: 5, name: "So do nguyen ly.png", type: "Kỹ thuật", size: "2.1 MB", status: "Hoàn tất" },
-        { id: 6, name: "Tom tat sang che.pdf", type: "Kỹ thuật", size: "150 KB", status: "Hoàn tất" },
-      ],
-      // Bước 4: Yêu cầu bảo hộ
-      claims: [
-        { 
-          id: 1, 
-          type: "Độc lập", 
-          content: "Thiết bị làm mát di động sử dụng công nghệ bay hơi nước, có khả năng điều chỉnh lưu lượng không khí và hướng gió tự động, tích hợp bộ lọc bụi kháng khuẩn, thân thiện với môi trường.",
-          status: "Hợp lệ",
-          referenceId: null
-        },
-        { 
-          id: 2, 
-          type: "Phụ thuộc", 
-          content: "Sáng chế theo điểm 1, trong đó thiết bị làm mát di động có tích hợp màn hình cảm ứng hiển thị thông tin về nhiệt độ, độ ẩm và chất lượng không khí.",
-          status: "Cần chỉnh sửa",
-          referenceId: 1,
-          error: "Điểm phụ thuộc phải chứa cụm 'Sáng chế theo điểm [X]'."
-        }
-      ],
 
+      // BƯỚC 3: TÀI LIỆU ĐÍNH KÈM
+      attachments: [], 
+      totalPages: 0, // Lưu số trang đếm từ file PDF
 
-      authors: [],
-      attachments: [],
-      claims: [],
+      // BƯỚC 4: YÊU CẦU BẢO HỘ
+      claims: [], 
+      claimPoints: 0, 
+
+      // BƯỚC 5: PHÍ VÀ THANH TOÁN
+      totalFee: 0, 
+      paymentReceipt: null,
     };
   });
 
-  // Tự động lưu dữ liệu vào session mỗi khi formData thay đổi
+  // 2. Tự động lưu vào session mỗi khi formData thay đổi để tránh mất dữ liệu khi F5
   useEffect(() => {
-    sessionStorage.setItem('patentFilingData', JSON.stringify(formData));
+    sessionStorage.setItem("patentFilingData", JSON.stringify(formData));
   }, [formData]);
 
-  // Hàm cập nhật dữ liệu linh hoạt
+  // 3. Hàm cập nhật dữ liệu linh hoạt (Dùng cho tất cả các bước)
   const updateFormData = (newData) => {
-    setFormData(prev => ({ ...prev, ...newData }));
+    setFormData((prev) => ({ ...prev, ...newData }));
   };
 
-  // Hàm xóa dữ liệu khi hoàn tất hoặc hủy bỏ
+  // 4. Hàm xóa dữ liệu (Reset hoàn toàn) - Sẽ gọi khi ấn "Hủy bỏ" hoặc "Nộp đơn mới"
   const clearFormData = () => {
-    sessionStorage.removeItem('patentFilingData');
+    // Xóa sạch bộ nhớ vật lý
+    sessionStorage.removeItem("patentFilingData");
+    
+    // Reset toàn bộ State về mặc định ban đầu
     setFormData({
       appType: "Sáng chế",
       title: "",
@@ -94,9 +71,23 @@ export const FilingProvider = ({ children }) => {
       technicalField: "",
       ipcCode: "",
       summary: "",
+      ownerType: "Cá nhân",
+      ownerName: "",
+      ownerDob: "",
+      ownerId: "",
+      ownerAddress: "",
+      ownerPhone: "",
+      ownerEmail: "",
+      ownerRepCode: "",
       authors: [],
+      isOwnerSameAsAuthor: false,
+      filingBasis: "Tác giả đồng thời là người nộp đơn",
       attachments: [],
+      totalPages: 0,
       claims: [],
+      claimPoints: 0,
+      totalFee: 0,
+      paymentReceipt: null,
     });
   };
 
