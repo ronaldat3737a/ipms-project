@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   X, CheckCircle2, ChevronLeft, ChevronRight, 
-  Upload, FileText, Trash2, Info
+  Upload, FileText, Trash2
 } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
@@ -12,7 +12,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 
 const Step3_Attachments = () => {
   const navigate = useNavigate();
-  // Đoạn mới: Thêm clearFormData để có thể xóa dữ liệu
   const { formData, updateFormData, clearFormData } = useFilingData();
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -27,7 +26,7 @@ const Step3_Attachments = () => {
   ];
 
   /**
-   * Logic xử lý khi chọn tệp tin và Đếm số trang PDF
+   * LOGIC QUAN TRỌNG: Lưu file gốc vào Context
    */
   const handleFileChange = async (e, category, docType) => {
     const file = e.target.files[0];
@@ -35,7 +34,7 @@ const Step3_Attachments = () => {
 
     let pageCount = 0;
 
-    // CHỈ TÍNH TRANG CHO BẢN MÔ TẢ VÀ LÀ FILE PDF
+    // 1. Tính số trang nếu là Bản mô tả (giữ nguyên logic cũ)
     if (docType === "BAN_MO_TA" && file.type === "application/pdf") {
       try {
         const arrayBuffer = await file.arrayBuffer();
@@ -46,6 +45,7 @@ const Step3_Attachments = () => {
       }
     }
 
+    // 2. Tạo đối tượng đính kèm mới
     const newAttachment = {
       id: crypto.randomUUID(),
       category: category,
@@ -53,13 +53,14 @@ const Step3_Attachments = () => {
       fileName: file.name,
       fileSize: file.size,
       extension: file.name.split('.').pop().toLowerCase(),
-      fileUrl: `uploads/${file.name}`,
+      // THAY ĐỔI: Lưu trực tiếp đối tượng file để Step 6 có cái mà gửi
+      file: file, 
       status: "HOAN_TAT"
     };
 
+    // 3. Loại bỏ file cũ cùng loại (nếu có) và thêm file mới
     const updatedAttachments = [...formData.attachments].filter(a => a.docType !== docType);
     
-    // Cập nhật attachments và totalPages (nếu có) vào Context
     const updatePayload = {
       attachments: [...updatedAttachments, newAttachment]
     };
@@ -74,12 +75,7 @@ const Step3_Attachments = () => {
   const removeFile = (docType) => {
     const filtered = formData.attachments.filter(a => a.docType !== docType);
     const updatePayload = { attachments: filtered };
-    
-    // Nếu xóa bản mô tả thì reset số trang về 0
-    if (docType === "BAN_MO_TA") {
-      updatePayload.totalPages = 0;
-    }
-    
+    if (docType === "BAN_MO_TA") updatePayload.totalPages = 0;
     updateFormData(updatePayload);
   };
 
@@ -98,36 +94,33 @@ const Step3_Attachments = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-800">
+      {/* Header - Giữ nguyên logic Hủy bỏ đã sửa */}
       <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white sticky top-0 z-10">
         <button 
-  onClick={() => {
-    // Hiện hộp thoại hỏi ý kiến người dùng
-    const isConfirm = window.confirm(
-      "Hệ thống sẽ xóa toàn bộ dữ liệu bạn đã nhập ở tất cả các bước. Bạn có chắc chắn muốn hủy bỏ không?"
-    );
-
-    if (isConfirm) {
-      clearFormData(); // 1. Quét sạch dữ liệu trong bộ nhớ (Context & Session)
-      navigate("/applicant/patent"); // 2. Sau đó mới quay về Dashboard
-    }
-  }}
-  className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium"
->
-  <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center">
-    <X size={14} />
-  </div>
-  Hủy bỏ
-</button>
+          onClick={() => {
+            if (window.confirm("Hệ thống sẽ xóa toàn bộ dữ liệu. Bạn chắc chắn chứ?")) {
+              clearFormData();
+              navigate("/applicant/patent");
+            }
+          }}
+          className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium"
+        >
+          <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center">
+            <X size={14} />
+          </div>
+          Hủy bỏ
+        </button>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-xs font-bold text-gray-800">{currentUser.fullName || "Người dùng"}</p>
-            <p className="text-[10px] text-gray-400 font-medium">{currentUser.email || ""}</p>
+            <p className="text-xs font-bold text-gray-800">{currentUser.fullName}</p>
+            <p className="text-[10px] text-gray-400 font-medium">{currentUser.email}</p>
           </div>
           <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.fullName}`} alt="Avatar" className="w-8 h-8 rounded-full border" />
         </div>
       </header>
 
       <div className="flex flex-grow overflow-hidden">
+        {/* Sidebar - Giữ nguyên */}
         <aside className="w-72 border-r border-gray-100 p-8 shrink-0 bg-gray-50/30">
           <h2 className="text-lg font-bold mb-8 text-gray-700">Tiến trình nộp đơn</h2>
           <div className="space-y-6">
@@ -174,7 +167,7 @@ const Step3_Attachments = () => {
                   category="TAI_LIEU_KY_THUAT" 
                   docType="BAN_MO_TA"
                   fileData={getFileByDocType("BAN_MO_TA")}
-                  totalPages={formData.totalPages} // Truyền số trang vào
+                  totalPages={formData.totalPages}
                   onFileSelect={handleFileChange}
                   onRemove={removeFile}
                 />
@@ -199,7 +192,6 @@ const Step3_Attachments = () => {
               </div>
             </section>
 
-            {/* BẢNG TỔNG HỢP (Giữ nguyên giao diện) */}
             <section className="space-y-4">
               <h3 className="text-lg font-bold text-gray-700">Danh sách tệp đã chọn ({formData.attachments.length})</h3>
               <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
@@ -256,13 +248,10 @@ const Step3_Attachments = () => {
   );
 };
 
-/**
- * Component Helper: Có thêm hộp hiển thị số trang cho Bản mô tả
- */
-// Cập nhật Component FileSlot trong Step3_Attachments.jsx
+// Component Helper FileSlot - GIỮ NGUYÊN GIAO DIỆN CỦA BẠN
 const FileSlot = ({ label, required, optional, category, docType, fileData, onFileSelect, onRemove, hint, totalPages }) => {
   const inputRef = useRef(null);
-  const { updateFormData } = useFilingData(); // Lấy hàm update từ context
+  const { updateFormData } = useFilingData();
 
   return (
     <div className={`p-6 border rounded-2xl bg-white transition ${fileData ? 'border-green-200 bg-green-50/5' : 'border-gray-100 hover:border-blue-200'}`}>
@@ -280,7 +269,6 @@ const FileSlot = ({ label, required, optional, category, docType, fileData, onFi
                 <span>Đã tải lên: {fileData.fileName}</span>
               </div>
               
-              {/* PHẦN SỬA ĐỔI: Ô NHẬP SỐ TRANG THỦ CÔNG */}
               {docType === "BAN_MO_TA" && (
                 <div className="flex flex-col gap-2 p-3 bg-amber-50 border border-amber-100 rounded-xl max-w-xs shadow-sm">
                   <label className="text-[10px] font-black text-amber-700 uppercase flex items-center gap-1">
@@ -299,9 +287,6 @@ const FileSlot = ({ label, required, optional, category, docType, fileData, onFi
                       (Hệ thống đếm: {totalPages} trang)
                     </span>
                   </div>
-                  <p className="text-[9px] text-amber-500 font-medium">
-                    * Vui lòng kiểm tra lại số trang để tính phí chính xác.
-                  </p>
                 </div>
               )}
             </div>

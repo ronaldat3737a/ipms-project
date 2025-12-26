@@ -1,8 +1,11 @@
 package com.ipms.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.Data; // Phải có dòng này
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true) // Thêm dòng này
 public class AttachmentDTO {
     private String category; // 'Hồ sơ pháp lý', 'Tài liệu kỹ thuật'...
     private String docType;  // 'Bản mô tả', 'Yêu cầu bảo hộ'...

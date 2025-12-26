@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -16,7 +18,7 @@ import java.util.UUID;
     name = "application_claims", 
     schema = "public",
     uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"application_id", "order_index"}) // Ràng buộc duy nhất
+        @UniqueConstraint(columnNames = {"application_id", "order_index"})
     }
 )
 @Data
@@ -31,23 +33,25 @@ public class ApplicationClaim {
     private UUID id;
 
     @Column(name = "order_index", nullable = false)
-    private Integer orderIndex; // Thứ tự của điểm (1, 2, 3...)
+    private Integer orderIndex; 
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, columnDefinition = "claim_type_enum")
-    private ClaimType type = ClaimType.DOK_LAP;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM) // Giúp khớp với kiểu enum 'claim_type_enum' trong Postgres
+    @Column(name = "type", nullable = false)
+    private ClaimType type = ClaimType.DOK_LAP; 
 
     @Column(nullable = false, columnDefinition = "text")
     private String content;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", columnDefinition = "claim_status_enum")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM) // Giúp khớp với kiểu enum 'claim_status_enum' trong Postgres
+    @Column(name = "status")
     private ClaimStatus status = ClaimStatus.HOP_LE;
 
     @Column(name = "validation_message", columnDefinition = "text")
-    private String validationMessage; // Thông báo lỗi phân tích tệp
+    private String validationMessage; 
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -61,14 +65,12 @@ public class ApplicationClaim {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "application_id", nullable = false)
-    private Application application; // Liên kết với đơn chính
+    private Application application; 
 
-    // Logic Tự tham chiếu: Một điểm phụ thuộc trỏ về một điểm cha
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_claim_id")
     private ApplicationClaim parentClaim;
 
-    // Danh sách các điểm con phụ thuộc vào điểm này (tùy chọn)
     @OneToMany(mappedBy = "parentClaim", cascade = CascadeType.ALL)
     private List<ApplicationClaim> dependentClaims;
 }

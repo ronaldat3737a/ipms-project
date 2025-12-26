@@ -4,6 +4,8 @@ import com.ipms.entity.enums.ApplicantType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode; // Thêm import này
+import org.hibernate.type.SqlTypes;           // Thêm import này
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -22,16 +24,18 @@ public class Applicant {
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
+    // --- CẬP NHẬT QUAN TRỌNG Ở ĐÂY ---
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, columnDefinition = "applicant_type_enum")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM) // BẮT BUỘC để Hibernate 6 nhận diện Custom Enum của Postgres
+    @Column(name = "type", nullable = false)
     private ApplicantType type = ApplicantType.CA_NHAN;
 
     @Column(name = "full_name", nullable = false, columnDefinition = "text")
     private String fullName;
 
     @Column(name = "dob")
-    private LocalDate dob; // Kiểu date trong Postgres tương ứng với LocalDate trong Java
+    private LocalDate dob; 
 
     @Column(name = "id_number", length = 50, nullable = false)
     private String idNumber;
@@ -56,5 +60,5 @@ public class Applicant {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "application_id", referencedColumnName = "id", nullable = false)
-    private Application application; // Mối quan hệ 1-1 với bảng Applications
+    private Application application; 
 }
