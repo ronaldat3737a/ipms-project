@@ -2,19 +2,21 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 // 1. Nhóm Trang chung
 import Landing from "./pages/Landing";
-
-// 2. Nhóm Auth (Xác thực)
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 
-// 3. Nhóm Người nộp đơn (Applicant)
+// 2. Nhóm Người nộp đơn (Applicant)
 import ApplicantDashboard from "./pages/Applicant/ApplicantDashboard";
 import PatentList from "./pages/Applicant/Patent/PatentList";
 
-// 4. Nhóm Người duyệt đơn (Examiner)
+// 3. Nhóm Người duyệt đơn (Examiner)
 import ExaminerDashboard from "./pages/Examiner/ExaminerDashboard";
+// LƯU Ý: Chữ 'Patent' phải viết hoa chữ P đúng như folder trong ảnh của bạn
+import PatentReviewList from "./pages/Examiner/Patent/PatentReviewList";
+import UtilityReviewList from "./pages/Examiner/Patent/UtilityReviewList";
+import ApplicationReview from "./pages/Examiner/Patent/ApplicationReview";
 
-// 5. Nhóm Nộp đơn Sáng chế (Filing) - Cần dùng chung Provider
+// 4. Nhóm Nộp đơn (Filing)
 import { FilingProvider } from "./pages/Applicant/Patent/Filing/FilingContext";
 import Step1_GeneralInfo from "./pages/Applicant/Patent/Filing/Step1_GeneralInfo";
 import Step2_OwnerAuthor from "./pages/Applicant/Patent/Filing/Step2_OwnerAuthor";
@@ -33,16 +35,22 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* --- DASHBOARD --- */}
-        <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
+        {/* --- DASHBOARD & LISTS (EXAMINER) --- */}
         <Route path="/examiner-dashboard" element={<ExaminerDashboard />} />
+        
+        {/* Route cho trang danh sách - Khi ấn từ Sidebar */}
+        <Route path="/examiner/patents" element={<PatentReviewList />} />
+        <Route path="/examiner/utility-solutions" element={<UtilityReviewList />} />
+        
+        {/* Route cho trang thẩm định chi tiết - Khi ấn nút Duyệt hồ sơ */}
+        <Route path="/examiner/review/:type/:id" element={<ApplicationReview />} />
+
+        {/* --- NGƯỜI NỘP ĐƠN --- */}
+        <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
         <Route path="/applicant/patent" element={<PatentList />} />
 
-        {/* --- QUY TRÌNH NỘP ĐƠN SÁNG CHẾ (6 BƯỚC) --- */}
-        {/* Bọc toàn bộ các bước vào trong MỘT FilingProvider duy nhất để không mất dữ liệu */}
-        <Route
-          path="/applicant/patent/*"
-          element={
+        {/* --- QUY TRÌNH NỘP ĐƠN SÁNG CHẾ --- */}
+        <Route path="/applicant/patent/*" element={
             <FilingProvider>
               <Routes>
                 <Route path="step1" element={<Step1_GeneralInfo />} />
@@ -52,11 +60,9 @@ function App() {
                 <Route path="step5" element={<Step5_FeePayment />} />
                 <Route path="step6" element={<Step6_Submission />} />
                 <Route path="success" element={<SuccessPage />} />
-                {/* Sau này bạn sẽ thêm step3, step4, step5, step6, success vào đây */}
               </Routes>
             </FilingProvider>
-          }
-        />
+        } />
       </Routes>
     </Router>
   );

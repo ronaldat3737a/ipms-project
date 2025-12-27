@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.persistence.EntityManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,6 +28,7 @@ public class PatentService {
     private final ClaimRepository claimRepository;
     private final AttachmentRepository attachmentRepository;
     private final UserRepository userRepository;
+    private final EntityManager entityManager; 
 
     @Value("${upload.path:uploads/}")
     private String uploadPath;
@@ -59,6 +61,8 @@ public class PatentService {
 
         app = applicationRepository.save(app);
         // ... giữ nguyên phần sau
+        applicationRepository.flush(); // Lệnh 1: Ép lưu xuống DB ngay để Trigger sinh mã app_no
+        entityManager.refresh(app);    // Lệnh 2: Đọc lại đơn từ DB để lấy mã app_no vừa sinh gán vào đối tượng Java
 
         // 3. Lưu thông tin Chủ đơn (Lấy trực tiếp từ dữ liệu PHẲNG của DTO)
         Applicant owner = Applicant.builder()
@@ -156,38 +160,47 @@ public class PatentService {
     
     Map<Integer, ApplicationClaim> claimMap = new HashMap<>();
 
-    // Bước 1: Lưu toàn bộ các điểm bảo hộ
+    // Bước 1: Lưu toàn bộ các điểm để có ID UUID
     for (int i = 0; i < claimDtos.size(); i++) {
         ClaimDTO cDto = claimDtos.get(i);
-        Integer finalOrderIndex = (cDto.getOrderIndex() != null) ? cDto.getOrderIndex() : (i + 1);
-
-        // Chuẩn hóa chuỗi trước khi so sánh
-        String typeStr = (cDto.getType() != null) ? cDto.getType().trim() : "";
-        ClaimType type = ("Độc lập".equalsIgnoreCase(typeStr) || "DOK_LAP".equalsIgnoreCase(typeStr)) 
-                         ? ClaimType.DOK_LAP : ClaimType.PHU_THUOC;
+        // SỬA: Đảm bảo idx luôn nhất quán (ưu tiên orderIndex từ DTO, nếu ko có thì dùng số thứ tự i+1)
+        Integer idx = (cDto.getOrderIndex() != null) ? cDto.getOrderIndex() : (i + 1);
 
         ApplicationClaim claim = ApplicationClaim.builder()
                 .application(app)
-                .orderIndex(finalOrderIndex)
-                .type(type)
-                .content(cDto.getContent() != null ? cDto.getContent() : "Nội dung đang cập nhật")
+                .orderIndex(idx)
+                .type("Độc lập".equalsIgnoreCase(cDto.getType()) ? ClaimType.DOK_LAP : ClaimType.PHU_THUOC)
+                .content(cDto.getContent())
                 .status(ClaimStatus.HOP_LE)
                 .build();
         
         claim = claimRepository.save(claim);
-        claimMap.put(finalOrderIndex, claim);
+        claimMap.put(idx, claim);
     }
 
-    // Bước 2: Cập nhật tham chiếu (Parent Claim)
-    for (ClaimDTO cDto : claimDtos) {
-        Integer currentIdx = cDto.getOrderIndex();
-        if (currentIdx != null && cDto.getParentOrderIndex() != null && claimMap.containsKey(cDto.getParentOrderIndex())) {
+    // Đẩy dữ liệu xuống DB để sinh ID UUID cho tất cả các bản ghi
+    claimRepository.flush(); 
+
+    // Bước 2: Cập nhật tham chiếu cha-con
+    for (int i = 0; i < claimDtos.size(); i++) {
+        ClaimDTO cDto = claimDtos.get(i);
+        // SỬA: Phải dùng lại cùng logic tính idx như ở Bước 1
+        Integer currentIdx = (cDto.getOrderIndex() != null) ? cDto.getOrderIndex() : (i + 1);
+        Integer parentIdx = cDto.getParentOrderIndex();
+
+        // Kiểm tra xem điểm này có điểm cha không
+        if (parentIdx != null && claimMap.containsKey(parentIdx)) {
             ApplicationClaim currentClaim = claimMap.get(currentIdx);
-            ApplicationClaim parentClaim = claimMap.get(cDto.getParentOrderIndex());
-            currentClaim.setParentClaim(parentClaim);
-            claimRepository.save(currentClaim);
+            ApplicationClaim parentClaim = claimMap.get(parentIdx);
+            
+            if (currentClaim != null && parentClaim != null) {
+                currentClaim.setParentClaim(parentClaim);
+                claimRepository.save(currentClaim);
+            }
         }
     }
+    // Lệnh flush cuối cùng để đẩy các thay đổi về parent_claim_id xuống DB
+    claimRepository.flush(); 
 }
 
     private String getFileExtension(String fileName) {
