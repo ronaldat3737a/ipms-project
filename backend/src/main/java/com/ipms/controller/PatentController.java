@@ -1,5 +1,6 @@
 package com.ipms.controller;
 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ipms.dto.PatentSubmissionDTO;
 import com.ipms.entity.Application;
@@ -10,13 +11,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/patents")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173") // Chỉ định rõ cổng của React để tránh lỗi CORS
+@CrossOrigin(
+    origins = "http://localhost:5173", 
+    allowedHeaders = "*", 
+    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}
+)
 public class PatentController {
 
     private final PatentService patentService;
@@ -46,4 +55,24 @@ public class PatentController {
         List<Application> applications = patentService.getPatentApplications();
         return ResponseEntity.ok(applications);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Application> getApplicationById(@PathVariable UUID id) {
+        // Gọi service để lấy dữ liệu chi tiết hồ sơ từ Postgres
+        Application application = patentService.getApplicationById(id);
+        return ResponseEntity.ok(application);
+    }
+
+     // Tại file com.ipms.controller.PatentController.java
+
+@PatchMapping("/{id}/status")
+public ResponseEntity<Application> updateStatus(
+        @PathVariable UUID id, 
+        @RequestBody Map<String, String> statusUpdate) {
+    
+    String newStatus = statusUpdate.get("status");
+    Application updatedApp = patentService.updateApplicationStatus(id, newStatus);
+    return ResponseEntity.ok(updatedApp);
+}
+
 }

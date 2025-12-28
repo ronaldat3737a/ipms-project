@@ -1,5 +1,6 @@
 package com.ipms.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.ipms.entity.enums.ApplicantType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -60,5 +61,6 @@ public class Applicant {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "application_id", referencedColumnName = "id", nullable = false)
+    @JsonBackReference
     private Application application; 
 }

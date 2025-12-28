@@ -32,23 +32,41 @@ const PatentReviewList = () => {
   }, []);
 
   // --- LOGIC LỌC DỮ LIỆU (Khớp với AppStatus.MOI trong Java) ---
-  const filteredData = patents.filter(item => {
-    const matchesTab = () => {
-      const status = item.status || "";
-      // Trong DB của bạn đơn mới nộp có status là "MOI" -> Thuộc tab Hình thức
-      if (activeTab === "hinh-thuc") return status === "MOI" || status.includes("HINH_THUC");
-      if (activeTab === "phi-nd") return status.includes("PHI");
-      if (activeTab === "noi-dung") return status.includes("NOI_DUNG");
-      if (activeTab === "cap-bang") return status.includes("CAP_BANG");
-      return true;
-    };
+  const filteredData = Array.isArray(patents) ? patents.filter(item => {
+  // 1. Chuyển status về String để so sánh (đề phòng kiểu dữ liệu từ DB)
+  const status = item.status || "";
 
-    const matchesSearch = 
-      (item.appNo || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (item.user?.fullName || "").toLowerCase().includes(searchTerm.toLowerCase());
+  const matchesTab = () => {
+    switch (activeTab) {
+      case "hinh-thuc":
+        // Hiển thị đơn mới, đang thẩm định hình thức hoặc đã bị từ chối ở bước này
+        return ["MOI", "DANG_TD_HINH_THUC", "CHO_SUA_DOI_HINH_THUC", "TU_CHOI_DON"].includes(status);
+      
+      case "phi-nd":
+        return status === "CHO_NOP_LE_PHI";
+      
+      case "noi-dung":
+        // Hiển thị đơn đang thẩm định nội dung hoặc bị từ chối ở bước nội dung
+        // (Lưu ý: Nếu quy trình của bạn tách biệt TU_CHOI_HINH_THUC và TU_CHOI_NOI_DUNG thì tốt hơn, 
+        // hiện tại tôi để TU_CHOI_DON xuất hiện ở cả 2 tab để không bị sót đơn)
+        return ["DANG_TD_NOI_DUNG", "CHO_SUA_DOI_NOI_DUNG", "TU_CHOI_DON"].includes(status);
+      
+      case "cap-bang":
+        return status === "DA_CAP_VAN_BANG";
+        
+      default:
+        return true;
+    }
+  };
 
-    return matchesTab() && matchesSearch;
-  });
+  // 2. Logic tìm kiếm (Phải dùng đúng tên trường appNo và fullName từ applicant)
+  const searchLower = searchTerm.toLowerCase();
+  const matchesSearch = 
+    (item.appNo || "").toLowerCase().includes(searchLower) || 
+    (item.applicant?.fullName || "").toLowerCase().includes(searchLower);
+
+  return matchesTab() && matchesSearch;
+}) : [];
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
@@ -121,58 +139,69 @@ const PatentReviewList = () => {
           </div>
 
           {/* TABLE - HIỂN THỊ DỮ LIỆU THẬT */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center">
-              <div>
-                <h3 className="font-bold text-slate-800">Danh sách đơn</h3>
-                <p className="text-xs text-slate-500 font-medium mt-1">
-                  {loading ? "Đang truy vấn database..." : `Tổng cộng ${filteredData.length} đơn đăng ký`}
-                </p>
-              </div>
-            </div>
-            
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-[11px] font-black text-slate-500 uppercase tracking-widest border-b">
-                <tr>
-                  <th className="px-8 py-5">Mã số đơn</th>
-                  <th className="px-8 py-5">Trạng thái</th>
-                  <th className="px-8 py-5">Ngày nộp đơn</th>
-                  <th className="px-8 py-5">Người nộp đơn</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredData.length > 0 ? (
-                  filteredData.map((item) => (
-                    <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
-                      <td 
-                        className="px-8 py-5 font-bold text-blue-600 underline text-sm cursor-pointer"
-                        onClick={() => navigate(`/examiner/review/sang-che/${item.id}`)}
-                      >
-                        {item.appNo || "Chưa cấp mã"}
-                      </td>
-                      <td className="px-8 py-5 text-sm font-black text-slate-700">
-                        <span className={`px-2 py-1 rounded text-[10px] ${item.status === 'MOI' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="px-8 py-5 text-sm text-slate-500 font-medium">
-                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : "N/A"}
-                      </td>
-                      <td className="px-8 py-5 text-sm text-slate-700 font-medium">
-                        {item.user?.fullName || "Hệ thống"}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="px-8 py-10 text-center text-slate-400 italic text-sm">
-                      {loading ? "Vui lòng đợi..." : "Không tìm thấy hồ sơ nào phù hợp."}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+<div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div className="p-6 border-b flex justify-between items-center">
+    <div>
+      <h3 className="font-bold text-slate-800">Danh sách đơn</h3>
+      <p className="text-xs text-slate-500 font-medium mt-1">
+        {loading ? "Đang truy vấn database..." : `Tổng cộng ${filteredData.length} đơn đăng ký`}
+      </p>
+    </div>
+  </div>
+  
+  <table className="w-full text-left">
+    <thead className="bg-gray-50 text-[11px] font-black text-slate-500 uppercase tracking-widest border-b">
+      <tr>
+        <th className="px-8 py-5">Mã số đơn</th>
+        <th className="px-8 py-5">Trạng thái</th>
+        <th className="px-8 py-5">Ngày nộp đơn</th>
+        <th className="px-8 py-5">Người nộp đơn</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-slate-100">
+      {filteredData.length > 0 ? (
+        filteredData.map((item) => (
+          <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
+            {/* 1. Hiển thị mã đơn appNo từ DB */}
+            <td 
+              className="px-8 py-5 font-bold text-blue-600 underline text-sm cursor-pointer hover:text-blue-800"
+              onClick={() => navigate(`/examiner/review/sang-che/${item.id}`)}
+            >
+              {item.appNo || "Đang cấp mã..."}
+            </td>
+
+            {/* 2. Hiển thị trạng thái với màu sắc Enum chuẩn */}
+            <td className="px-8 py-5 text-sm font-black">
+              <span className={`px-3 py-1 rounded-full text-[10px] 
+                ${item.status === 'TU_CHOI_DON' ? 'bg-red-100 text-red-600' : 
+                  item.status === 'MOI' ? 'bg-orange-100 text-orange-600' : 
+                  'bg-blue-100 text-blue-600'}`}>
+                {item.status}
+              </span>
+            </td>
+
+            {/* 3. Hiển thị ngày nộp đơn (createdAt) theo định dạng Việt Nam */}
+            <td className="px-8 py-5 text-sm text-slate-500 font-medium">
+              {item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : "N/A"}
+            </td>
+
+            {/* 4. Hiển thị Tên người nộp lấy từ quan hệ Applicant */}
+            <td className="px-8 py-5 text-sm text-slate-700 font-medium">
+              {item.applicant?.fullName || "Chưa cập nhật"}
+            </td>
+          </tr>
+        ))
+      ) : (
+        /* Hiển thị khi mảng rỗng hoặc đang trong quá trình tải */
+        <tr>
+          <td colSpan="4" className="px-8 py-10 text-center text-slate-400 italic text-sm">
+            {loading ? "Vui lòng đợi hệ thống kết nối..." : "Không tìm thấy hồ sơ nào trong mục này."}
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
         </section>
       </main>
     </div>

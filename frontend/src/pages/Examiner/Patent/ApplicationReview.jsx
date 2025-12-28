@@ -1,24 +1,44 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Thêm useEffect
 import { useNavigate, useParams } from "react-router-dom";
 import { 
-  ChevronLeft, 
-  Download, 
-  Eye, 
-  CheckCircle, 
-  AlertTriangle, 
-  XCircle, 
-  ChevronDown,
-  Info,
-  Users,
-  FileText,
-  Layers,
-  History
+  ChevronLeft, Download, Eye, CheckCircle, AlertTriangle, 
+  XCircle, ChevronDown, Info, Users, FileText, Layers, History
 } from "lucide-react";
 
 const ApplicationReview = () => {
   const navigate = useNavigate();
-  const { id, type } = useParams();
-  const [activeStep, setActiveStep] = useState(2); // Bước 2: Thẩm định hình thức
+  const { id, type } = useParams(); // Lấy ID hồ sơ từ URL
+  
+  // --- TRẠNG THÁI DỮ LIỆU ---
+  const [app, setApp] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // --- FETCH DỮ LIỆU TỪ BACKEND ---
+  useEffect(() => {
+    const fetchDetail = async () => {
+      setLoading(true);
+      try {
+        // Gọi API lấy chi tiết 1 đơn theo ID
+        const response = await fetch(`http://localhost:8080/api/patents/${id}`);
+        const data = await response.json();
+        setApp(data);
+      } catch (error) {
+        console.error("Lỗi lấy chi tiết hồ sơ:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) fetchDetail();
+  }, [id]);
+
+  // Hiển thị màn hình chờ khi đang load
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center font-sans text-gray-500">
+      Đang tải chi tiết hồ sơ hồ sơ {id}...
+    </div>
+  );
+
+  if (!app) return <div className="p-10 text-center">Không tìm thấy dữ liệu hồ sơ.</div>;
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-24 font-sans text-[#333]">
@@ -33,14 +53,14 @@ const ApplicationReview = () => {
         
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold text-[#212529]">
-            Thẩm định hình thức hồ sơ: <span className="text-[#0D6EFD]">1-2025-00001</span>
+            Thẩm định hồ sơ: <span className="text-[#0D6EFD]">{app.appNo || "Chưa cấp mã"}</span>
           </h1>
           <span className="px-3 py-1 bg-[#E7F1FF] text-[#0D6EFD] text-xs font-semibold rounded-full border border-[#CFE2FF]">
-            Đang thẩm định hình thức
+            {app.status === 'MOI' ? 'Chờ thẩm định hình thức' : app.status}
           </span>
         </div>
         
-        <div className="w-[140px]"></div> {/* Spacer để cân bằng layout */}
+        <div className="w-[140px]"></div>
       </header>
 
       <main className="max-w-6xl mx-auto mt-6 px-4 space-y-6">
@@ -54,40 +74,38 @@ const ApplicationReview = () => {
           <div className="p-6 space-y-4 text-sm">
             <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
               <span className="text-[#6C757D]">Tiêu đề</span>
-              <span className="font-medium">Hệ thống quản lý thông tin sở hữu trí tuệ tự động</span>
+              <span className="font-medium text-blue-900">{app.title}</span>
             </div>
             <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
               <span className="text-[#6C757D]">Loại đơn</span>
-              <span>Đơn sáng chế</span>
+              <span className="font-bold text-slate-700">{app.appType}</span>
             </div>
             <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
               <span className="text-[#6C757D]">Dạng giải pháp</span>
-              <span>Sáng chế</span>
+              <span>{app.solutionType} ({app.solutionDetail})</span>
             </div>
             <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
               <span className="text-[#6C757D]">Lĩnh vực kỹ thuật</span>
               <div className="flex gap-2">
-                {["Phần mềm quản lý", "Trí tuệ nhân tạo", "Cơ sở dữ liệu"].map(tag => (
-                  <span key={tag} className="px-2 py-0.5 bg-[#F1F3F5] border border-[#DEE2E6] rounded text-[11px] font-medium text-[#495057]">
-                    {tag}
+                  <span className="px-2 py-0.5 bg-[#F1F3F5] border border-[#DEE2E6] rounded text-[11px] font-medium text-[#495057]">
+                    {app.technicalField}
                   </span>
-                ))}
               </div>
             </div>
             <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
               <span className="text-[#6C757D]">Mã IPC</span>
               <div className="flex gap-2 font-mono text-xs">
-                <span className="px-2 py-0.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded">G06F 17/30</span>
-                <span className="px-2 py-0.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded">G06N 20/00</span>
+                {app.ipcCodes?.map(code => (
+                  <span key={code} className="px-2 py-0.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded">{code}</span>
+                ))}
               </div>
             </div>
             <div className="grid grid-cols-[200px_1fr]">
               <span className="text-[#6C757D]">Tóm tắt</span>
               <div className="space-y-2">
-                <p className="text-[#495057] leading-relaxed italic">
-                  Sáng chế này đề xuất một hệ thống quản lý thông tin sở hữu trí tuệ tự động sử dụng trí tuệ nhân tạo (AI) và học máy (ML) để tối ưu hóa quy trình nộp đơn, theo dõi và bảo vệ quyền sở hữu trí tuệ. Hệ thống bao gồm các mô-đun chính: mô-đun phân tích tài...
+                <p className="text-[#495057] leading-relaxed italic whitespace-pre-line">
+                  {app.summary}
                 </p>
-                <button className="text-[#0D6EFD] text-xs font-semibold hover:underline">Xem thêm ▾</button>
               </div>
             </div>
           </div>
@@ -100,7 +118,7 @@ const ApplicationReview = () => {
             <h2 className="font-bold text-[#495057]">2. Chủ đơn & Tác giả</h2>
           </div>
           <div className="grid grid-cols-2">
-            {/* Thông tin chủ đơn */}
+            {/* Thông tin chủ đơn (Applicant) */}
             <div className="p-6 border-r border-[#DEE2E6] space-y-4 text-sm">
               <h3 className="font-bold text-[#212529] mb-4 flex items-center gap-2 underline underline-offset-4 decoration-[#DEE2E6]">
                 <FileText size={14} /> Thông tin chủ đơn
@@ -108,151 +126,161 @@ const ApplicationReview = () => {
               <div className="space-y-3">
                 <div className="flex justify-between border-b border-[#F8F9FA] pb-2">
                   <span className="text-[#6C757D]">Tên chủ đơn</span>
-                  <span className="font-semibold text-right">Nguyễn Thị Hợi</span>
+                  <span className="font-semibold text-right">{app.applicant?.fullName || "N/A"}</span>
                 </div>
                 <div className="flex justify-between border-b border-[#F8F9FA] pb-2">
                   <span className="text-[#6C757D]">Mã số thuế/CCCD</span>
-                  <span className="font-medium">0123456789</span>
+                  <span className="font-medium">{app.applicant?.idNumber}</span>
                 </div>
                 <div className="flex justify-between border-b border-[#F8F9FA] pb-2">
                   <span className="text-[#6C757D]">Địa chỉ</span>
-                  <span className="text-right">Số 10, Đường Phan Chu Trinh, Quận 1, TP. Hồ Chí Minh</span>
+                  <span className="text-right max-w-[200px]">{app.applicant?.address}</span>
                 </div>
                 <div className="flex justify-between border-b border-[#F8F9FA] pb-2">
                   <span className="text-[#6C757D]">Điện thoại</span>
-                  <span className="font-medium">+84 28 3820 0000</span>
+                  <span className="font-medium">{app.applicant?.phone}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#6C757D]">Email</span>
-                  <span className="text-[#0D6EFD]">contact@globals.vn</span>
+                  <span className="text-[#0D6EFD]">{app.applicant?.email}</span>
                 </div>
-              </div>
-              <div className="mt-6 pt-4 border-t border-[#DEE2E6] text-xs italic text-[#6C757D]">
-                Cơ sở pháp sinh quyền: Tác giả đồng thời là người nộp đơn
               </div>
             </div>
 
-            {/* Danh sách tác giả */}
-            <div className="p-6 space-y-4 text-sm">
-              <h3 className="font-bold text-[#212529] mb-4 flex items-center gap-2 underline underline-offset-4 decoration-[#DEE2E6]">
-                <Users size={14} /> Danh sách tác giả
-              </h3>
-              <table className="w-full">
-                <thead className="text-[11px] text-[#6C757D] uppercase tracking-wider text-left border-b border-[#DEE2E6]">
-                  <tr>
-                    <th className="pb-3 font-semibold">STT</th>
-                    <th className="pb-3 font-semibold">Họ tên</th>
-                    <th className="pb-3 font-semibold">Quốc tịch</th>
-                    <th className="pb-3 font-semibold">CCCD</th>
-                  </tr>
-                </thead>
-                <tbody className="text-xs">
-                  <tr className="border-b border-[#F8F9FA]">
-                    <td className="py-3">1</td>
-                    <td className="py-3 font-medium">Nguyễn Văn A</td>
-                    <td className="py-3">Việt Nam</td>
-                    <td className="py-3 font-mono">040509785</td>
-                  </tr>
-                  <tr className="border-b border-[#F8F9FA]">
-                    <td className="py-3">2</td>
-                    <td className="py-3 font-medium">Lê Thị B</td>
-                    <td className="py-3">Việt Nam</td>
-                    <td className="py-3 font-mono">040612459</td>
-                  </tr>
-                  <tr>
-                    <td className="py-3">3</td>
-                    <td className="py-3 font-medium">Trần C</td>
-                    <td className="py-3">Hoa Kỳ</td>
-                    <td className="py-3 font-mono">030578415</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            {/* Danh sách tác giả (Authors) */}
+<div className="p-6 space-y-4 text-sm">
+  <h3 className="font-bold text-[#212529] mb-4 flex items-center gap-2 underline underline-offset-4 decoration-[#DEE2E6]">
+    <Users size={14} /> Danh sách tác giả
+  </h3>
+  <table className="w-full">
+    <thead className="text-[11px] text-[#6C757D] uppercase tracking-wider text-left border-b border-[#DEE2E6]">
+      <tr>
+        <th className="pb-3 font-semibold w-12">STT</th>
+        <th className="pb-3 font-semibold">Họ tên</th>
+        <th className="pb-3 font-semibold">Quốc tịch</th>
+        <th className="pb-3 font-semibold">CCCD</th> {/* Cột mới hoàn thiện */}
+      </tr>
+    </thead>
+    <tbody className="text-xs">
+      {app.authors && app.authors.length > 0 ? (
+        app.authors.map((author, index) => (
+          <tr key={index} className="border-b border-[#F8F9FA] hover:bg-gray-50/50 transition-colors">
+            <td className="py-3 text-[#6C757D]">{index + 1}</td>
+            <td className="py-3 font-medium text-[#212529]">{author.fullName}</td>
+            <td className="py-3 text-[#495057]">{author.nationality}</td>
+            <td className="py-3 font-mono text-[#495057]">
+              {/* Lấy dữ liệu idNumber từ DB */}
+              {author.idNumber || "N/A"}
+            </td>
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td colSpan="4" className="py-8 text-center text-[#ADB5BD] italic">
+            Không có dữ liệu tác giả cho hồ sơ này
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
           </div>
         </section>
 
-        {/* 3. CẤU TRÚC YÊU CẦU BẢO HỘ */}
+        {/* 3. CẤU TRÚC YÊU CẦU BẢO HỘ (Claims) */}
         <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
           <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
             <Layers size={18} className="text-[#495057]" />
             <h2 className="font-bold text-[#495057]">3. Cấu trúc yêu cầu bảo hộ</h2>
           </div>
           <div className="divide-y divide-[#F1F3F5]">
-            {[
-              "Yêu cầu 1. Độc lập: Một hệ thống quản lý thông tin sở hữu trí...",
-              "Yêu cầu 2. Độc lập: Một phương pháp để tự động hóa quy trình theo...",
-              "Yêu cầu 3. Độc lập: Một thiết bị xử lý dữ liệu cho hệ thống..."
-            ].map((text, idx) => (
+            {app.claims?.map((claim, idx) => (
               <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer group">
-                <span className="text-sm text-[#495057]">{text}</span>
+                <span className="text-sm text-[#495057]">
+                  Điểm {claim.orderIndex}. {claim.content}
+                </span>
                 <ChevronDown size={16} className="text-[#ADB5BD] group-hover:text-[#495057]" />
               </div>
             ))}
           </div>
         </section>
 
-        {/* 4. TÀI LIỆU & BIÊN LAI */}
-        <div className="grid grid-cols-2 gap-6">
-          <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
-            <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
-              <FileText size={18} className="text-[#495057]" />
-              <h2 className="font-bold text-[#495057]">4. Tài liệu đính kèm</h2>
-            </div>
-            <div className="p-4 space-y-4">
-               <div className="space-y-2">
-                 <p className="text-[11px] font-bold text-[#ADB5BD] uppercase tracking-wider">Tài liệu kỹ thuật</p>
-                 {[
-                   "Bản mô tả sáng chế",
-                   "Hình vẽ kỹ thuật",
-                   "Yêu cầu bảo hộ"
-                 ].map(doc => (
-                   <div key={doc} className="flex items-center justify-between p-2 hover:bg-[#F8F9FA] rounded group">
-                     <span className="text-sm flex items-center gap-2"><FileText size={14} className="text-[#ADB5BD]" /> {doc}</span>
-                     <button className="text-[#0D6EFD] text-xs font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                       Tải xuống <Download size={12} />
-                     </button>
-                   </div>
-                 ))}
+        {/* 4. TÀI LIỆU (Attachments) */}
+        <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
+          <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
+            <FileText size={18} className="text-[#495057]" />
+            <h2 className="font-bold text-[#495057]">4. Tài liệu đính kèm</h2>
+          </div>
+          <div className="p-4 space-y-4">
+               <div className="grid grid-cols-2 gap-4">
+                  {app.attachments?.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-[#F8F9FA] group">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold flex items-center gap-2">
+                           <FileText size={14} className="text-blue-400" /> {doc.docType}
+                        </span>
+                        <span className="text-[10px] text-gray-400 italic">{doc.fileName}</span>
+                      </div>
+                      <button className="text-[#0D6EFD] text-xs font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Tải xuống <Download size={12} />
+                      </button>
+                    </div>
+                  ))}
                </div>
-               <div className="space-y-2 pt-2">
-                 <p className="text-[11px] font-bold text-[#ADB5BD] uppercase tracking-wider">Tài liệu hành chính</p>
-                 <div className="flex items-center justify-between p-2 hover:bg-[#F8F9FA] rounded group">
-                    <span className="text-sm flex items-center gap-2"><FileText size={14} className="text-[#ADB5BD]" /> Tờ khai đăng ký</span>
-                    <button className="text-[#0D6EFD] text-xs font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Tải xuống <Download size={12} />
-                    </button>
-                 </div>
-               </div>
-            </div>
-          </section>
+          </div>
+        </section>
 
-          <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden flex flex-col">
-            <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
-              <FileText size={18} className="text-[#495057]" />
-              <h2 className="font-bold text-[#495057]">Biên lai theo giai đoạn</h2>
+        {/* 5. BIÊN LAI THEO GIAI ĐOẠN - NẰM DƯỚI PHẦN TÀI LIỆU */}
+        <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
+          <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
+            <FileText size={18} className="text-[#495057]" />
+            <h2 className="font-bold text-[#495057]">5. Biên lai theo giai đoạn</h2>
+          </div>
+          <div className="p-4 space-y-2 divide-y divide-[#F1F3F5]">
+            
+            {/* Giai đoạn 1: Nộp đơn - Mặc định hiển thị ngày nộp từ Database */}
+            <div className="py-3 flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 font-medium">📜 Nộp đơn + Thẩm định hình thức</span>
+              <span className="text-[11px] text-[#0D6EFD] italic font-bold bg-blue-50 px-3 py-1 rounded">
+                {app.createdAt ? new Date(app.createdAt).toLocaleDateString('vi-VN') : "01/01/2025"} ↓
+              </span>
             </div>
-            <div className="p-4 flex-1 divide-y divide-[#F1F3F5]">
-              <div className="py-2 flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2">📜 Nộp đơn + Thẩm định hình thức</span>
-                <span className="text-[11px] text-[#0D6EFD] italic font-medium">01/01/2025 ↓</span>
-              </div>
-              <div className="py-4 flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2">📜 Thẩm định nội dung</span>
-                <button className="px-3 py-1 bg-[#6F42C1] text-white text-[10px] font-bold rounded hover:bg-[#59359a]">Chưa đến GĐ</button>
-              </div>
-              <div className="py-4 flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2">📜 Cấp văn bằng</span>
-                <button className="px-3 py-1 bg-[#6F42C1] text-white text-[10px] font-bold rounded hover:bg-[#59359a]">Chưa đến GĐ</button>
-              </div>
-            </div>
-          </section>
-        </div>
 
-        {/* 5. NHẬT KÝ HOẠT ĐỘNG */}
+            {/* Giai đoạn 2: Thẩm định nội dung - Kiểm tra trạng thái đơn */}
+            <div className="py-4 flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 font-medium">📜 Thẩm định nội dung</span>
+              {["DANG_TD_NOI_DUNG", "CHO_SUA_DOI_NOI_DUNG", "DA_CAP_VAN_BANG"].includes(app.status) ? (
+                <span className="text-[11px] text-[#198754] italic font-bold bg-green-50 px-3 py-1 rounded">
+                  Đã nộp phí ↓
+                </span>
+              ) : (
+                <button className="px-3 py-1 bg-[#6F42C1] text-white text-[10px] font-bold rounded shadow-sm">
+                  Chưa đến GĐ
+                </button>
+              )}
+            </div>
+
+            {/* Giai đoạn 3: Cấp văn bằng - Chỉ hiện khi đã hoàn tất */}
+            <div className="py-4 flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 font-medium">📜 Cấp văn bằng</span>
+              {app.status === "DA_CAP_VAN_BANG" ? (
+                <span className="text-[11px] text-[#198754] italic font-bold bg-green-50 px-3 py-1 rounded">
+                  Đã nộp phí ↓
+                </span>
+              ) : (
+                <button className="px-3 py-1 bg-[#6F42C1] text-white text-[10px] font-bold rounded shadow-sm">
+                  Chưa đến GĐ
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* 5. NHẬT KÝ HOẠT ĐỘNG (Lấy từ createdAt) */}
         <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
           <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
             <History size={18} className="text-[#495057]" />
-            <h2 className="font-bold text-[#495057]">5. Nhật ký hoạt động</h2>
+            <h2 className="font-bold text-[#495057]">6. Nhật ký hoạt động</h2>
           </div>
           <table className="w-full text-sm">
             <thead className="bg-[#F8F9FA] text-[#6C757D] text-[11px] uppercase border-b border-[#DEE2E6] text-left">
@@ -262,26 +290,13 @@ const ApplicationReview = () => {
                 <th className="px-6 py-3 font-semibold">Mô tả</th>
               </tr>
             </thead>
-            <tbody className="text-xs divide-y divide-[#F8F9FA]">
+            <tbody className="text-xs">
               <tr>
-                <td className="px-6 py-4 text-[#6C757D] font-medium">14:30 01/01/2025</td>
-                <td className="px-6 py-4 font-bold text-[#212529]">Nộp đơn sáng chế</td>
-                <td className="px-6 py-4 text-[#495057]">Đơn sáng chế VN/2025/01/00001 đã được nộp thành công.</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-[#6C757D] font-medium">09:00 05/01/2025</td>
-                <td className="px-6 py-4 font-bold text-[#212529]">Yêu cầu bổ sung</td>
-                <td className="px-6 py-4 text-[#495057]">Cục SHTT yêu cầu bổ sung tài liệu về hình vẽ kỹ thuật.</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 text-[#6C757D] font-medium">11:00 08/01/2025</td>
-                <td className="px-6 py-4 font-bold text-[#212529]">Bổ sung tài liệu</td>
-                <td className="px-6 py-4 text-[#495057]">Đã nộp bổ sung hình vẽ kỹ thuật theo yêu cầu.</td>
-              </tr>
-              <tr className="bg-[#F8F9FA]">
-                <td className="px-6 py-4 text-[#6C757D] font-medium">10:00 15/01/2025</td>
-                <td className="px-6 py-4 font-bold text-[#212529]">Thẩm định hình thức hoàn tất</td>
-                <td className="px-6 py-4 text-[#495057]">Đơn đã qua thẩm định hình thức, chờ công bố.</td>
+                <td className="px-6 py-4 text-[#6C757D] font-medium">
+                   {new Date(app.createdAt).toLocaleString('vi-VN')}
+                </td>
+                <td className="px-6 py-4 font-bold text-[#212529]">Nộp đơn trực tuyến</td>
+                <td className="px-6 py-4 text-[#495057]">Hệ thống đã tiếp nhận đơn từ cổng dịch vụ công.</td>
               </tr>
             </tbody>
           </table>
@@ -291,7 +306,6 @@ const ApplicationReview = () => {
       {/* FOOTER ACTIONS BAR */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#DEE2E6] p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          {/* Progress Indicator */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#198754]"></div>
@@ -301,42 +315,35 @@ const ApplicationReview = () => {
               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_0_2px_rgba(13,110,253,0.2)]"></div>
               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider underline underline-offset-4">Thẩm định hình thức</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#DEE2E6]"></div>
-              <span className="text-[10px] font-bold text-[#ADB5BD] uppercase tracking-wider">Thẩm định nội dung</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full border border-[#ADB5BD]"></div>
-              <span className="text-[10px] font-bold text-[#ADB5BD] uppercase tracking-wider">Đang thẩm định</span>
-            </div>
           </div>
+          {/* Action Buttons - Cập nhật logic điều hướng chuẩn */}
+<div className="flex items-center gap-3">
+  
+  {/* Nút Chấp nhận: Truyền data sang trang AccepConfirmation */}
+  <button 
+    onClick={() => navigate(`/examiner/review/sang-che/${id}/accept`, { state: { appData: app } })}
+    className="px-4 py-2 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#157347] transition-all"
+  >
+    <CheckCircle size={14} /> Chấp nhận hình thức
+  </button>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3">
-          {/* Nút Chấp nhận hình thức */}
-            <button 
-              onClick={() => navigate(`/examiner/review/${type}/${id}/accept`)}
-              className="px-4 py-2 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#157347] transition-all"
-            >
-            <CheckCircle size={14} /> Chấp nhận hình thức
-            </button>
+  {/* Nút Yêu cầu sửa đổi: Truyền data sang trang CorrectionRequest */}
+  <button 
+    onClick={() => navigate(`/examiner/review/sang-che/${id}/correction`, { state: { appData: app } })}
+    className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6] transition-all"
+  >
+    <AlertTriangle size={14} /> Yêu cầu sửa đổi
+  </button>
 
-            {/* Nút Yêu cầu sửa đổi */}
-            <button 
-              onClick={() => navigate(`/examiner/review/${type}/${id}/correction`)}
-              className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6] transition-all"
-            >
-            <AlertTriangle size={14} /> Yêu cầu sửa đổi
-            </button>
-
-            {/* Nút Từ chối đơn */}
-            <button 
-              onClick={() => navigate(`/examiner/review/${type}/${id}/reject`)}
-              className="px-4 py-2 bg-[#DC3545] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#bb2d3b] transition-all"
-            >
-                  <XCircle size={14} /> Từ chối đơn
-            </button>
-          </div>
+  {/* Nút Từ chối: Truyền data sang trang RejectConfirmation */}
+  <button 
+    onClick={() => navigate(`/examiner/review/sang-che/${id}/reject`, { state: { appData: app } })}
+    className="px-4 py-2 bg-[#DC3545] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#bb2d3b] transition-all"
+  >
+    <XCircle size={14} /> Từ chối đơn
+  </button>
+</div>
+          
         </div>
       </div>
     </div>

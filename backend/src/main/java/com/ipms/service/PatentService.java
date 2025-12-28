@@ -222,4 +222,21 @@ public class PatentService {
         // Lọc trong database những đơn có AppType là SANG_CHE
         return applicationRepository.findByAppType(AppType.SANG_CHE);
     }
+
+    public Application getApplicationById(UUID id) {
+        return applicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn với ID: " + id));
+    }
+
+    // Tại file com.ipms.service.PatentService.java
+
+public Application updateApplicationStatus(UUID id, String status) {
+    Application app = applicationRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Hồ sơ không tồn tại"));
+    
+    // Chuyển chuỗi String sang Enum AppStatus
+    app.setStatus(AppStatus.valueOf(status)); 
+    return applicationRepository.save(app);
+}
+    
 }
