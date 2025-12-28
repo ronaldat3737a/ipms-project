@@ -1,438 +1,346 @@
-import React from "react";
-import { useNavigate } from "react-router-dom"; // Thêm hook điều hướng
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
-  LayoutDashboard,
-  UserCheck,
+import React, { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { 
+  ChevronLeft, 
+  Download, 
+  Eye, 
+  CheckCircle, 
+  AlertTriangle, 
+  XCircle, 
+  ChevronDown,
+  Info,
+  Users,
   FileText,
-  Lightbulb,
-  Package,
-  CreditCard,
-  Settings,
-  Bell,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Eye,
-  RefreshCw,
-  ShieldCheck,
-  LogOut,
+  Layers,
+  History
 } from "lucide-react";
 
-// --- DỮ LIỆU GIẢ LẬP ---
-const EXAMINER_STATS = [
-  { name: "Sáng chế", count: 120, color: "#3b82f6" },
-  { name: "Giải pháp hữu ích", count: 85, color: "#10b981" },
-  { name: "Kiểu dáng CN", count: 45, color: "#94a3b8" },
-];
-
-const STATUS_DATA = [
-  { name: "Hợp lệ", value: 40, color: "#10b981" },
-  { name: "Chờ sửa đổi", value: 25, color: "#f59e0b" },
-  { name: "Mới nộp", value: 35, color: "#3b82f6" },
-];
-
-const MOCK_APPLICATIONS = [
-  {
-    id: "1-2025-00001",
-    title: "Hệ thống lọc khí Nano",
-    type: "Sáng chế",
-    owner: "Nguyễn Văn A",
-    status: "MOI",
-    date: "2025-12-25",
-  },
-  {
-    id: "2-2025-00012",
-    title: "Quy trình tái chế nhựa",
-    type: "GPHU",
-    owner: "Công ty ABC",
-    status: "DANG_CHO_DUYET_LAI",
-    date: "2025-12-24",
-  },
-  {
-    id: "1-2025-00005",
-    title: "Drone tự hành QR",
-    type: "Sáng chế",
-    owner: "Trần Thị C",
-    status: "YEU_CAU_SUA_HT",
-    date: "2025-12-23",
-  },
-];
-
-const ExaminerDashboard = () => {
-  const navigate = useNavigate(); // Hook dùng để chuyển trang
-
-  // Hàm điều hướng đến trang thẩm định chi tiết dựa trên loại đơn
-  const handleGoToReview = (type, id) => {
-    // Chuyển đổi tên loại sang slug cho URL (Ví dụ: Sáng chế -> sang-che)
-    const typeSlug = type === "Sáng chế" ? "sang-che" : "giai-phap-huu-ich";
-    navigate(`/examiner/review/${typeSlug}/${id}`);
-  };
-
-  // Render Badge trạng thái
-  const renderStatusBadge = (status) => {
-    const config = {
-      MOI: {
-        label: "Mới nộp",
-        style: "bg-blue-100 text-blue-700 border-blue-200",
-      },
-      YEU_CAU_SUA_HT: {
-        label: "Yêu cầu sửa HT",
-        style: "bg-orange-100 text-orange-700 border-orange-200",
-      },
-      DANG_CHO_DUYET_LAI: {
-        label: "Đã sửa - Chờ duyệt lại",
-        style: "bg-indigo-100 text-indigo-700 border-indigo-200",
-      },
-      DANG_TĐ_NOI_DUNG: {
-        label: "Đang thẩm định ND",
-        style: "bg-purple-100 text-purple-700 border-purple-200",
-      },
-      CAP_VAN_BANG: {
-        label: "Đã cấp bằng",
-        style: "bg-green-100 text-green-700 border-green-200",
-      },
-    };
-    const { label, style } = config[status] || {
-      label: status,
-      style: "bg-gray-100 text-gray-700",
-    };
-    return (
-      <span
-        className={`px-3 py-1 rounded-full text-[11px] font-bold border ${style}`}
-      >
-        {label}
-      </span>
-    );
-  };
+const ApplicationReview = () => {
+  const navigate = useNavigate();
+  const { id, type } = useParams();
+  const [activeStep, setActiveStep] = useState(2); // Bước 2: Thẩm định hình thức
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
-      {/* SIDEBAR */}
-      <aside className="w-72 bg-slate-900 text-white flex flex-col shadow-2xl shrink-0">
-        <div className="p-8 border-b border-slate-800">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <UserCheck size={20} className="text-white" />
-            </div>
-            <span className="text-xl font-black tracking-tight uppercase">
-              IPMS <span className="text-blue-400">Examiner</span>
-            </span>
-          </div>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-          <SidebarItem
-            icon={<LayoutDashboard size={20} />}
-            label="Dashboard"
-            active
-            onClick={() => navigate("/examiner-dashboard")}
-          />
-          <SidebarItem
-            icon={<FileText size={18} />}
-            label="TĐ Sáng chế"
-            onClick={() => navigate("/examiner/review/sang-che/1-2025-00001")}
-          />
-          <SidebarItem
-            icon={<Lightbulb size={18} />}
-            label="TĐ Giải pháp hữu ích"
-            onClick={() =>
-              navigate("/examiner/review/giai-phap-huu-ich/2-2025-00012")
-            }
-          />
-          <SidebarItem
-            icon={<Package size={18} />}
-            label="TĐ Kiểu dáng công nghiệp"
-          />
-          <SidebarItem icon={<ShieldCheck size={18} />} label="TĐ Nhãn hiệu" />
-
-          <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">
-            Hệ thống
-          </div>
-          <SidebarItem
-            icon={<CreditCard size={18} />}
-            label="Theo dõi Lệ phí"
-          />
-          <SidebarItem
-            icon={<Settings size={18} />}
-            label="Cấu hình Quy trình"
-          />
-        </nav>
-
-        <div className="p-4 border-t border-slate-800">
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-3 text-slate-400 hover:text-red-500 w-full px-4 py-3 transition"
-          >
-            <LogOut size={20} />
-            <span className="font-medium">Đăng xuất</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-20 bg-white border-b flex items-center justify-between px-10 shadow-sm z-10 shrink-0">
-          <h1 className="text-xl font-bold text-slate-800">
-            Bảng điều khiển Thẩm định viên (Examiner)
+    <div className="min-h-screen bg-[#F8F9FA] pb-24 font-sans text-[#333]">
+      {/* HEADER AREA */}
+      <header className="sticky top-0 z-50 bg-white border-b border-[#E9ECEF] px-6 py-3 flex items-center justify-between shadow-sm">
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-sm text-[#495057] hover:bg-gray-100 px-3 py-1.5 rounded-md border border-[#DEE2E6] transition-all"
+        >
+          <ChevronLeft size={16} /> Quay lại danh sách
+        </button>
+        
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-bold text-[#212529]">
+            Thẩm định hình thức hồ sơ: <span className="text-[#0D6EFD]">1-2025-00001</span>
           </h1>
-          <div className="flex items-center space-x-6">
-            <div className="relative cursor-pointer">
-              <Bell className="text-slate-400 hover:text-blue-500" size={22} />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full font-bold">
-                3
-              </span>
+          <span className="px-3 py-1 bg-[#E7F1FF] text-[#0D6EFD] text-xs font-semibold rounded-full border border-[#CFE2FF]">
+            Đang thẩm định hình thức
+          </span>
+        </div>
+        
+        <div className="w-[140px]"></div> {/* Spacer để cân bằng layout */}
+      </header>
+
+      <main className="max-w-6xl mx-auto mt-6 px-4 space-y-6">
+        
+        {/* 1. THÔNG TIN CHUNG */}
+        <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
+          <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
+            <Info size={18} className="text-[#495057]" />
+            <h2 className="font-bold text-[#495057]">1. Thông tin chung</h2>
+          </div>
+          <div className="p-6 space-y-4 text-sm">
+            <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
+              <span className="text-[#6C757D]">Tiêu đề</span>
+              <span className="font-medium">Hệ thống quản lý thông tin sở hữu trí tuệ tự động</span>
             </div>
-            <div className="flex items-center space-x-3 border-l pl-6 text-right">
-              <div>
-                <p className="text-sm font-bold">Trần Văn Thẩm Định</p>
-                <p className="text-xs text-blue-500 font-medium italic">
-                  Examiner cấp cao
+            <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
+              <span className="text-[#6C757D]">Loại đơn</span>
+              <span>Đơn sáng chế</span>
+            </div>
+            <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
+              <span className="text-[#6C757D]">Dạng giải pháp</span>
+              <span>Sáng chế</span>
+            </div>
+            <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
+              <span className="text-[#6C757D]">Lĩnh vực kỹ thuật</span>
+              <div className="flex gap-2">
+                {["Phần mềm quản lý", "Trí tuệ nhân tạo", "Cơ sở dữ liệu"].map(tag => (
+                  <span key={tag} className="px-2 py-0.5 bg-[#F1F3F5] border border-[#DEE2E6] rounded text-[11px] font-medium text-[#495057]">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-[200px_1fr] border-b border-[#F1F3F5] pb-3">
+              <span className="text-[#6C757D]">Mã IPC</span>
+              <div className="flex gap-2 font-mono text-xs">
+                <span className="px-2 py-0.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded">G06F 17/30</span>
+                <span className="px-2 py-0.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded">G06N 20/00</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-[200px_1fr]">
+              <span className="text-[#6C757D]">Tóm tắt</span>
+              <div className="space-y-2">
+                <p className="text-[#495057] leading-relaxed italic">
+                  Sáng chế này đề xuất một hệ thống quản lý thông tin sở hữu trí tuệ tự động sử dụng trí tuệ nhân tạo (AI) và học máy (ML) để tối ưu hóa quy trình nộp đơn, theo dõi và bảo vệ quyền sở hữu trí tuệ. Hệ thống bao gồm các mô-đun chính: mô-đun phân tích tài...
                 </p>
-              </div>
-              <div className="w-10 h-10 bg-slate-200 rounded-xl overflow-hidden shadow-sm border border-slate-100">
-                <img
-                  src="https://ui-avatars.com/api/?name=Examiner&background=0D8ABC&color=fff"
-                  alt="avatar"
-                />
+                <button className="text-[#0D6EFD] text-xs font-semibold hover:underline">Xem thêm ▾</button>
               </div>
             </div>
           </div>
-        </header>
+        </section>
 
-        {/* Workspace Content */}
-        <section className="flex-1 overflow-y-auto p-8 space-y-8 bg-gray-50/50">
-          {/* STATS SUMMARY */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatBox
-              label="Đơn mới nhận"
-              value="18"
-              icon={<FileText color="#3b82f6" />}
-              trend="+12% tuần này"
-            />
-            <StatBox
-              label="Chờ duyệt lại"
-              value="05"
-              icon={<RefreshCw color="#6366f1" />}
-              trend="Cần xử lý gấp"
-              highlight
-            />
-            <StatBox
-              label="Quá hạn thẩm định"
-              value="02"
-              icon={<AlertCircle color="#ef4444" />}
-              trend="Yêu cầu giải thích"
-            />
-            <StatBox
-              label="Đã hoàn thành"
-              value="142"
-              icon={<CheckCircle color="#10b981" />}
-              trend="Tỉ lệ: 94%"
-            />
+        {/* 2. CHỦ ĐƠN & TÁC GIẢ */}
+        <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
+          <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
+            <Users size={18} className="text-[#495057]" />
+            <h2 className="font-bold text-[#495057]">2. Chủ đơn & Tác giả</h2>
           </div>
-
-          {/* BIỂU ĐỒ */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-              <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center italic">
-                <FileText size={18} className="mr-2 text-blue-500" /> Thống kê
-                số lượng đơn theo loại
+          <div className="grid grid-cols-2">
+            {/* Thông tin chủ đơn */}
+            <div className="p-6 border-r border-[#DEE2E6] space-y-4 text-sm">
+              <h3 className="font-bold text-[#212529] mb-4 flex items-center gap-2 underline underline-offset-4 decoration-[#DEE2E6]">
+                <FileText size={14} /> Thông tin chủ đơn
               </h3>
-              <div style={{ width: "100%", height: 300 }}>
-                <ResponsiveContainer>
-                  <BarChart
-                    data={EXAMINER_STATS}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="#f1f5f9"
-                    />
-                    <XAxis
-                      dataKey="name"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#64748b", fontSize: 12 }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#64748b", fontSize: 12 }}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "#f8fafc" }}
-                      contentStyle={{
-                        borderRadius: "12px",
-                        border: "none",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                      }}
-                    />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={40}>
-                      {EXAMINER_STATS.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="space-y-3">
+                <div className="flex justify-between border-b border-[#F8F9FA] pb-2">
+                  <span className="text-[#6C757D]">Tên chủ đơn</span>
+                  <span className="font-semibold text-right">Nguyễn Thị Hợi</span>
+                </div>
+                <div className="flex justify-between border-b border-[#F8F9FA] pb-2">
+                  <span className="text-[#6C757D]">Mã số thuế/CCCD</span>
+                  <span className="font-medium">0123456789</span>
+                </div>
+                <div className="flex justify-between border-b border-[#F8F9FA] pb-2">
+                  <span className="text-[#6C757D]">Địa chỉ</span>
+                  <span className="text-right">Số 10, Đường Phan Chu Trinh, Quận 1, TP. Hồ Chí Minh</span>
+                </div>
+                <div className="flex justify-between border-b border-[#F8F9FA] pb-2">
+                  <span className="text-[#6C757D]">Điện thoại</span>
+                  <span className="font-medium">+84 28 3820 0000</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#6C757D]">Email</span>
+                  <span className="text-[#0D6EFD]">contact@globals.vn</span>
+                </div>
+              </div>
+              <div className="mt-6 pt-4 border-t border-[#DEE2E6] text-xs italic text-[#6C757D]">
+                Cơ sở pháp sinh quyền: Tác giả đồng thời là người nộp đơn
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
-              <h3 className="text-base font-bold text-slate-800 mb-6 text-center italic">
-                Trạng thái xử lý
+            {/* Danh sách tác giả */}
+            <div className="p-6 space-y-4 text-sm">
+              <h3 className="font-bold text-[#212529] mb-4 flex items-center gap-2 underline underline-offset-4 decoration-[#DEE2E6]">
+                <Users size={14} /> Danh sách tác giả
               </h3>
-              <div style={{ width: "100%", height: 260 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={STATUS_DATA}
-                      innerRadius={60}
-                      outerRadius={85}
-                      paddingAngle={8}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {STATUS_DATA.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* BẢNG DANH SÁCH DUYỆT ĐƠN */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-10">
-            <div className="p-8 border-b flex justify-between items-center bg-gray-50/30">
-              <h3 className="text-lg font-bold text-slate-800 uppercase tracking-tight italic">
-                Danh sách đơn chờ xử lý
-              </h3>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-slate-50/80 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b">
-                    <th className="px-8 py-5">Mã số đơn</th>
-                    <th className="px-8 py-5">Tiêu đề giải pháp</th>
-                    <th className="px-8 py-5">Loại đơn</th>
-                    <th className="px-8 py-5">Người nộp</th>
-                    <th className="px-8 py-5">Ngày nộp</th>
-                    <th className="px-8 py-5">Trạng thái</th>
-                    <th className="px-8 py-5 text-center">Thao tác</th>
+              <table className="w-full">
+                <thead className="text-[11px] text-[#6C757D] uppercase tracking-wider text-left border-b border-[#DEE2E6]">
+                  <tr>
+                    <th className="pb-3 font-semibold">STT</th>
+                    <th className="pb-3 font-semibold">Họ tên</th>
+                    <th className="pb-3 font-semibold">Quốc tịch</th>
+                    <th className="pb-3 font-semibold">CCCD</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {MOCK_APPLICATIONS.map((app) => (
-                    <tr
-                      key={app.id}
-                      className="hover:bg-blue-50/30 transition-all duration-150"
-                    >
-                      <td className="px-8 py-5 font-mono text-xs font-bold text-blue-600">
-                        {app.id}
-                      </td>
-                      <td className="px-8 py-5 font-bold text-slate-700 text-sm">
-                        {app.title}
-                      </td>
-                      <td className="px-8 py-5 text-xs text-slate-600">
-                        {app.type}
-                      </td>
-                      <td className="px-8 py-5 text-xs text-slate-600 font-medium">
-                        {app.owner}
-                      </td>
-                      <td className="px-8 py-5 text-xs text-slate-500 font-medium">
-                        {app.date}
-                      </td>
-                      <td className="px-8 py-5">
-                        {renderStatusBadge(app.status)}
-                      </td>
-                      <td className="px-8 py-5 text-center">
-                        <button
-                          onClick={() => handleGoToReview(app.type, app.id)}
-                          className="bg-slate-900 text-white px-5 py-2 rounded-xl text-[10px] font-black hover:bg-blue-600 transition-all shadow-sm flex items-center justify-center mx-auto uppercase tracking-tighter"
-                        >
-                          <Eye size={14} className="mr-2" /> Duyệt hồ sơ
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                <tbody className="text-xs">
+                  <tr className="border-b border-[#F8F9FA]">
+                    <td className="py-3">1</td>
+                    <td className="py-3 font-medium">Nguyễn Văn A</td>
+                    <td className="py-3">Việt Nam</td>
+                    <td className="py-3 font-mono">040509785</td>
+                  </tr>
+                  <tr className="border-b border-[#F8F9FA]">
+                    <td className="py-3">2</td>
+                    <td className="py-3 font-medium">Lê Thị B</td>
+                    <td className="py-3">Việt Nam</td>
+                    <td className="py-3 font-mono">040612459</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3">3</td>
+                    <td className="py-3 font-medium">Trần C</td>
+                    <td className="py-3">Hoa Kỳ</td>
+                    <td className="py-3 font-mono">030578415</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
           </div>
         </section>
+
+        {/* 3. CẤU TRÚC YÊU CẦU BẢO HỘ */}
+        <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
+          <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
+            <Layers size={18} className="text-[#495057]" />
+            <h2 className="font-bold text-[#495057]">3. Cấu trúc yêu cầu bảo hộ</h2>
+          </div>
+          <div className="divide-y divide-[#F1F3F5]">
+            {[
+              "Yêu cầu 1. Độc lập: Một hệ thống quản lý thông tin sở hữu trí...",
+              "Yêu cầu 2. Độc lập: Một phương pháp để tự động hóa quy trình theo...",
+              "Yêu cầu 3. Độc lập: Một thiết bị xử lý dữ liệu cho hệ thống..."
+            ].map((text, idx) => (
+              <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-50 cursor-pointer group">
+                <span className="text-sm text-[#495057]">{text}</span>
+                <ChevronDown size={16} className="text-[#ADB5BD] group-hover:text-[#495057]" />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 4. TÀI LIỆU & BIÊN LAI */}
+        <div className="grid grid-cols-2 gap-6">
+          <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
+            <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
+              <FileText size={18} className="text-[#495057]" />
+              <h2 className="font-bold text-[#495057]">4. Tài liệu đính kèm</h2>
+            </div>
+            <div className="p-4 space-y-4">
+               <div className="space-y-2">
+                 <p className="text-[11px] font-bold text-[#ADB5BD] uppercase tracking-wider">Tài liệu kỹ thuật</p>
+                 {[
+                   "Bản mô tả sáng chế",
+                   "Hình vẽ kỹ thuật",
+                   "Yêu cầu bảo hộ"
+                 ].map(doc => (
+                   <div key={doc} className="flex items-center justify-between p-2 hover:bg-[#F8F9FA] rounded group">
+                     <span className="text-sm flex items-center gap-2"><FileText size={14} className="text-[#ADB5BD]" /> {doc}</span>
+                     <button className="text-[#0D6EFD] text-xs font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                       Tải xuống <Download size={12} />
+                     </button>
+                   </div>
+                 ))}
+               </div>
+               <div className="space-y-2 pt-2">
+                 <p className="text-[11px] font-bold text-[#ADB5BD] uppercase tracking-wider">Tài liệu hành chính</p>
+                 <div className="flex items-center justify-between p-2 hover:bg-[#F8F9FA] rounded group">
+                    <span className="text-sm flex items-center gap-2"><FileText size={14} className="text-[#ADB5BD]" /> Tờ khai đăng ký</span>
+                    <button className="text-[#0D6EFD] text-xs font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Tải xuống <Download size={12} />
+                    </button>
+                 </div>
+               </div>
+            </div>
+          </section>
+
+          <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden flex flex-col">
+            <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
+              <FileText size={18} className="text-[#495057]" />
+              <h2 className="font-bold text-[#495057]">Biên lai theo giai đoạn</h2>
+            </div>
+            <div className="p-4 flex-1 divide-y divide-[#F1F3F5]">
+              <div className="py-2 flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">📜 Nộp đơn + Thẩm định hình thức</span>
+                <span className="text-[11px] text-[#0D6EFD] italic font-medium">01/01/2025 ↓</span>
+              </div>
+              <div className="py-4 flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">📜 Thẩm định nội dung</span>
+                <button className="px-3 py-1 bg-[#6F42C1] text-white text-[10px] font-bold rounded hover:bg-[#59359a]">Chưa đến GĐ</button>
+              </div>
+              <div className="py-4 flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">📜 Cấp văn bằng</span>
+                <button className="px-3 py-1 bg-[#6F42C1] text-white text-[10px] font-bold rounded hover:bg-[#59359a]">Chưa đến GĐ</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* 5. NHẬT KÝ HOẠT ĐỘNG */}
+        <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
+          <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
+            <History size={18} className="text-[#495057]" />
+            <h2 className="font-bold text-[#495057]">5. Nhật ký hoạt động</h2>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-[#F8F9FA] text-[#6C757D] text-[11px] uppercase border-b border-[#DEE2E6] text-left">
+              <tr>
+                <th className="px-6 py-3 font-semibold">Thời gian</th>
+                <th className="px-6 py-3 font-semibold">Hành động</th>
+                <th className="px-6 py-3 font-semibold">Mô tả</th>
+              </tr>
+            </thead>
+            <tbody className="text-xs divide-y divide-[#F8F9FA]">
+              <tr>
+                <td className="px-6 py-4 text-[#6C757D] font-medium">14:30 01/01/2025</td>
+                <td className="px-6 py-4 font-bold text-[#212529]">Nộp đơn sáng chế</td>
+                <td className="px-6 py-4 text-[#495057]">Đơn sáng chế VN/2025/01/00001 đã được nộp thành công.</td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-[#6C757D] font-medium">09:00 05/01/2025</td>
+                <td className="px-6 py-4 font-bold text-[#212529]">Yêu cầu bổ sung</td>
+                <td className="px-6 py-4 text-[#495057]">Cục SHTT yêu cầu bổ sung tài liệu về hình vẽ kỹ thuật.</td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-[#6C757D] font-medium">11:00 08/01/2025</td>
+                <td className="px-6 py-4 font-bold text-[#212529]">Bổ sung tài liệu</td>
+                <td className="px-6 py-4 text-[#495057]">Đã nộp bổ sung hình vẽ kỹ thuật theo yêu cầu.</td>
+              </tr>
+              <tr className="bg-[#F8F9FA]">
+                <td className="px-6 py-4 text-[#6C757D] font-medium">10:00 15/01/2025</td>
+                <td className="px-6 py-4 font-bold text-[#212529]">Thẩm định hình thức hoàn tất</td>
+                <td className="px-6 py-4 text-[#495057]">Đơn đã qua thẩm định hình thức, chờ công bố.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
       </main>
+
+      {/* FOOTER ACTIONS BAR */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#DEE2E6] p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          {/* Progress Indicator */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#198754]"></div>
+              <span className="text-[10px] font-bold text-[#198754] uppercase tracking-wider">Tiếp nhận</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_0_2px_rgba(13,110,253,0.2)]"></div>
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider underline underline-offset-4">Thẩm định hình thức</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#DEE2E6]"></div>
+              <span className="text-[10px] font-bold text-[#ADB5BD] uppercase tracking-wider">Thẩm định nội dung</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full border border-[#ADB5BD]"></div>
+              <span className="text-[10px] font-bold text-[#ADB5BD] uppercase tracking-wider">Đang thẩm định</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+          {/* Nút Chấp nhận hình thức */}
+            <button 
+              onClick={() => navigate(`/examiner/review/${type}/${id}/accept`)}
+              className="px-4 py-2 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#157347] transition-all"
+            >
+            <CheckCircle size={14} /> Chấp nhận hình thức
+            </button>
+
+            {/* Nút Yêu cầu sửa đổi */}
+            <button 
+              onClick={() => navigate(`/examiner/review/${type}/${id}/correction`)}
+              className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6] transition-all"
+            >
+            <AlertTriangle size={14} /> Yêu cầu sửa đổi
+            </button>
+
+            {/* Nút Từ chối đơn */}
+            <button 
+              onClick={() => navigate(`/examiner/review/${type}/${id}/reject`)}
+              className="px-4 py-2 bg-[#DC3545] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#bb2d3b] transition-all"
+            >
+                  <XCircle size={14} /> Từ chối đơn
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-// Sub-component: Sidebar Item (Đã cập nhật onClick)
-const SidebarItem = ({
-  icon,
-  label,
-  active = false,
-  isComingSoon = false,
-  onClick,
-}) => (
-  <div
-    onClick={onClick}
-    className={`
-    flex items-center space-x-4 p-4 rounded-2xl cursor-pointer transition-all duration-200
-    ${
-      active
-        ? "bg-blue-600 text-white shadow-xl shadow-blue-900/20"
-        : "text-slate-400 hover:bg-slate-800 hover:text-white"
-    }
-    ${isComingSoon ? "opacity-30 cursor-not-allowed pointer-events-none" : ""}
-  `}
-  >
-    {icon}
-    <span className="font-bold text-sm">{label}</span>
-  </div>
-);
-
-// Sub-component: Thẻ thống kê
-const StatBox = ({ label, value, icon, trend, highlight = false }) => (
-  <div
-    className={`p-6 rounded-3xl border transition-all hover:shadow-lg bg-white ${
-      highlight
-        ? "border-indigo-500 shadow-indigo-100 shadow-xl"
-        : "border-slate-200 shadow-sm"
-    }`}
-  >
-    <div className="flex items-center justify-between mb-4">
-      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-        {icon}
-      </div>
-      <span
-        className={`text-[9px] font-black px-2 py-1 rounded-lg ${
-          highlight
-            ? "bg-indigo-100 text-indigo-600"
-            : "bg-slate-100 text-slate-500"
-        }`}
-      >
-        {trend}
-      </span>
-    </div>
-    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-      {label}
-    </p>
-    <h2 className="text-3xl font-black text-slate-900 mt-1">{value}</h2>
-  </div>
-);
-
-export default ExaminerDashboard;
+export default ApplicationReview;

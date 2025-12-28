@@ -25,6 +25,10 @@ import Step4_Claims from "./pages/Applicant/Patent/Filing/Step4_Claims";
 import Step5_FeePayment from "./pages/Applicant/Patent/Filing/Step5_FeePayment";
 import Step6_Submission from "./pages/Applicant/Patent/Filing/Step6_Submission";
 import SuccessPage from "./pages/Applicant/Patent/Filing/SuccessPage";
+// Thêm 3 dòng này vào đầu file App.jsx
+import AcceptConfirmation from "./pages/Examiner/Patent/AcceptConfirmation";
+import RejectConfirmation from "./pages/Examiner/Patent/RejectConfirmation";
+import CorrectionRequest from "./pages/Examiner/Patent/CorrectionRequest";
 
 function App() {
   return (
@@ -44,6 +48,10 @@ function App() {
         
         {/* Route cho trang thẩm định chi tiết - Khi ấn nút Duyệt hồ sơ */}
         <Route path="/examiner/review/:type/:id" element={<ApplicationReview />} />
+        {/* Các Route cho Examiner xử lý hồ sơ */}
+        <Route path="/examiner/review/:type/:id/accept" element={<AcceptConfirmation />} />
+        <Route path="/examiner/review/:type/:id/reject" element={<RejectConfirmation />} />
+        <Route path="/examiner/review/:type/:id/correction" element={<CorrectionRequest />} />
 
         {/* --- NGƯỜI NỘP ĐƠN --- */}
         <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />

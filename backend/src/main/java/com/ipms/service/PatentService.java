@@ -216,4 +216,10 @@ public class PatentService {
     private SolutionType mapSolutionType(String type) {
         return "Quy trình".equals(type) ? SolutionType.QUY_TRINH : SolutionType.SAN_PHAM;
     }
+
+    // --- PHƯƠNG THỨC MỚI: LẤY DANH SÁCH ĐƠN SÁNG CHẾ CHO EXAMINER ---
+    public List<Application> getPatentApplications() {
+        // Lọc trong database những đơn có AppType là SANG_CHE
+        return applicationRepository.findByAppType(AppType.SANG_CHE);
+    }
 }

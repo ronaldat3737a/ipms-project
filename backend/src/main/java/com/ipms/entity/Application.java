@@ -9,6 +9,9 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Generated;
 import org.hibernate.annotations.GenerationTime;
 import org.hibernate.type.SqlTypes;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 
 import java.time.OffsetDateTime;
 import java.util.List;
