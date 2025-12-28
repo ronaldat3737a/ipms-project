@@ -86,17 +86,22 @@ public class Application {
     // --- MỐI QUAN HỆ (GIỮ NGUYÊN) ---
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
+    @JsonIgnoreProperties({"applications", "password", "role", "handler", "hibernateLazyInitializer"})
     private User user;
 
     @OneToOne(mappedBy = "application", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private Applicant applicant;
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties({"application", "handler", "hibernateLazyInitializer"})
     private List<Author> authors;
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties({"application", "handler", "hibernateLazyInitializer"})
     private List<ApplicationClaim> claims;
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties({"application", "handler", "hibernateLazyInitializer"})
     private List<ApplicationAttachment> attachments;
 }
