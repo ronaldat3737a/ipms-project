@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
-const Step5_FeePayment = () => {
+const Step6_FeePayment = () => {
   const navigate = useNavigate();
   const context = useFilingData();
   const formData = context?.formData || {};
@@ -24,7 +24,18 @@ const Step5_FeePayment = () => {
   const [loading, setLoading] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // --- LOGIC TÍNH TOÁN LỆ PHÍ ---
+  // --- LOGIC TIẾN TRÌNH (Đã sửa từ 5 thành 6) ---
+  const currentStep = 6; 
+  const steps = [
+    { id: 1, label: "Thông tin chung" },
+    { id: 2, label: "Chủ đơn & Tác giả" },
+    { id: 3, label: "Tải lên tài liệu" },
+    { id: 4, label: "Yêu cầu bảo hộ" },
+    { id: 5, label: "Xác nhận đơn" },
+    { id: 6, label: "Tính phí & Thanh toán" },
+  ];
+
+  // --- LOGIC TÍNH TOÁN LỆ PHÍ (Giữ nguyên) ---
   const allClaims = formData?.claims || [];
   const numIndependentClaims = allClaims.filter((c) => c?.type === "Độc lập").length;
   const numPages = parseInt(formData?.totalPages) || 0;
@@ -50,46 +61,44 @@ const Step5_FeePayment = () => {
     }).format(amount);
   };
 
-  // --- XỬ LÝ GỌI API VNPAY ---
+  // --- XỬ LÝ GỌI API VNPAY (Đã sửa URL và Headers cho Ngrok) ---
   const handleVNPayPayment = async () => {
     setLoading(true);
     try {
-      // Lưu ý: Ở bước 5 này, đơn có thể chưa có ID chính thức nếu chưa bấm lưu ở bước 6.
-      // Bạn có thể truyền ID tạm hoặc gửi dữ liệu để Backend lưu nháp trước khi thanh toán.
-      const appId = formData?.id || "DRAFT-" + Date.now(); 
-      const stage = 1; // Giai đoạn 1: Nộp đơn & TĐ Hình thức
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+      
+      // Sử dụng ID hồ sơ thực tế hoặc ID tạm
+      const appId = formData?.appNo || "DRAFT-" + Date.now(); 
+      const stage = 1; 
 
       const response = await axios.get(
-        `http://localhost:8080/api/payment/create-payment/${appId}/${stage}`,
-        { params: { amount: totalAmount } }
+        `${API_BASE_URL}/api/payment/create-payment/${appId}/${stage}`,
+        { 
+          params: { amount: totalAmount },
+          headers: {
+            "ngrok-skip-browser-warning": "69420" // Vượt rào Ngrok
+          }
+        }
       );
 
       if (response.data && response.data.url) {
-        // Chuyển hướng sang cổng thanh toán VNPay
+        // Chuyển hướng sang VNPay
+        // Sau khi thanh toán, VNPay sẽ tự gọi về /payment-result (đã cấu hình ở Backend)
         window.location.href = response.data.url;
       }
     } catch (error) {
       console.error("Lỗi thanh toán:", error);
-      alert("Không thể kết nối với cổng thanh toán. Vui lòng thử lại sau.");
+      alert("Lỗi kết nối: " + (error.response?.data || "Cổng thanh toán đang bảo trì."));
     } finally {
       setLoading(false);
     }
   };
 
-  const steps = [
-    { id: 1, label: "Thông tin chung" },
-    { id: 2, label: "Chủ đơn & Tác giả" },
-    { id: 3, label: "Tải lên tài liệu" },
-    { id: 4, label: "Yêu cầu bảo hộ" },
-    { id: 5, label: "Tính phí & Thanh toán" },
-    { id: 6, label: "Nộp đơn" },
-  ];
-
   if (!context) return <div className="p-20 text-center font-bold text-red-500">Lỗi: Không tìm thấy FilingProvider!</div>;
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-800">
-      {/* HEADER GIỮ NGUYÊN */}
+      {/* HEADER */}
       <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white sticky top-0 z-10">
         <button 
           onClick={() => window.confirm("Hủy bỏ nộp đơn?") && (clearFormData(), navigate("/applicant/patent"))}
@@ -108,16 +117,20 @@ const Step5_FeePayment = () => {
       </header>
 
       <div className="flex flex-grow overflow-hidden">
-        {/* SIDEBAR GIỮ NGUYÊN */}
+        {/* SIDEBAR (Sửa logic currentStep) */}
         <aside className="w-72 border-r border-gray-100 p-8 shrink-0 bg-gray-50/30">
           <h2 className="text-lg font-bold mb-8 text-gray-700">Tiến trình nộp đơn</h2>
           <div className="space-y-6">
             {steps.map((step) => (
               <div key={step.id} className="flex items-center gap-4 relative">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all z-10 ${5 === step.id ? "bg-blue-500 border-blue-500 text-white shadow-md" : 5 > step.id ? "bg-green-500 border-green-500 text-white" : "bg-white border-gray-200 text-gray-400"}`}>
-                  {5 > step.id ? <CheckCircle2 size={16} /> : step.id}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all z-10 
+                  ${currentStep === step.id ? "bg-blue-500 border-blue-500 text-white shadow-md" : 
+                    currentStep > step.id ? "bg-green-500 border-green-500 text-white" : "bg-white border-gray-200 text-gray-400"}`}>
+                  {currentStep > step.id ? <CheckCircle2 size={16} /> : step.id}
                 </div>
-                <span className={`text-sm font-bold ${5 === step.id ? "text-blue-600" : 5 > step.id ? "text-green-600" : "text-gray-400"}`}>{step.label}</span>
+                <span className={`text-sm font-bold ${currentStep === step.id ? "text-blue-600" : currentStep > step.id ? "text-green-600" : "text-gray-400"}`}>
+                  {step.label}
+                </span>
                 {step.id !== 6 && <div className="absolute left-4 top-8 w-0.5 h-6 bg-gray-100"></div>}
               </div>
             ))}
@@ -126,7 +139,7 @@ const Step5_FeePayment = () => {
 
         <main className="flex-grow p-12 overflow-y-auto bg-white">
           <div className="max-w-4xl mx-auto space-y-8">
-            <h1 className="text-3xl font-bold italic">5. Tính phí & Thanh toán</h1>
+            <h1 className="text-3xl font-bold italic">6. Tính phí & Thanh toán</h1>
 
             {/* THẺ TÓM TẮT DỮ LIỆU */}
             <div className="grid grid-cols-2 gap-4">
@@ -163,7 +176,7 @@ const Step5_FeePayment = () => {
               </div>
             </section>
 
-            {/* PHẦN THANH TOÁN VNPAY (THAY THẾ CHUYỂN KHOẢN) */}
+            {/* PHẦN THANH TOÁN VNPAY */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="p-8 rounded-3xl border-2 border-blue-100 bg-blue-50/20 space-y-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -171,8 +184,8 @@ const Step5_FeePayment = () => {
                   <h3 className="font-bold text-gray-700">Thanh toán trực tuyến</h3>
                 </div>
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Sử dụng cổng thanh toán <b>VNPay Sandbox</b> để thực hiện giao dịch thử nghiệm. 
-                  Hệ thống sẽ tự động xác nhận hồ sơ sau khi thanh toán thành công.
+                  Sử dụng cổng thanh toán <b>VNPay Sandbox</b>. 
+                  Hồ sơ sẽ được tự động cập nhật sau khi thanh toán thành công.
                 </p>
                 <button
                   onClick={handleVNPayPayment}
@@ -183,7 +196,7 @@ const Step5_FeePayment = () => {
                 </button>
               </div>
 
-              {/* HƯỚNG DẪN THẺ TEST */}
+              {/* THÔNG TIN THẺ TEST */}
               <div className="p-8 rounded-3xl border border-amber-100 bg-amber-50/30 space-y-3">
                 <div className="flex items-center gap-2 text-amber-600">
                   <AlertCircle size={18} />
@@ -192,21 +205,30 @@ const Step5_FeePayment = () => {
                 <div className="space-y-2 text-[11px] font-medium text-amber-800">
                   <div className="flex justify-between border-b border-amber-100 pb-1"><span>Ngân hàng:</span> <b>NCB</b></div>
                   <div className="flex justify-between border-b border-amber-100 pb-1"><span>Số thẻ:</span> <b>9704198526191432198</b></div>
-                  <div className="flex justify-between border-b border-amber-100 pb-1"><span>Tên chủ thẻ:</span> <b>NGUYEN VAN A</b></div>
-                  <div className="flex justify-between border-b border-amber-100 pb-1"><span>Ngày phát hành:</span> <b>07/15</b></div>
-                  <div className="flex justify-between"><span>Mật khẩu OTP:</span> <b>123456</b></div>
+                  <div className="flex justify-between border-b border-amber-100 pb-1"><span>Chủ thẻ:</span> <b>NGUYEN VAN A</b></div>
+                  <div className="flex justify-between border-b border-amber-100 pb-1"><span>OTP:</span> <b>123456</b></div>
                 </div>
               </div>
             </section>
 
             {/* ĐIỀU HƯỚNG */}
             <div className="flex justify-end gap-4 pt-10 border-t border-gray-50">
-              <button onClick={() => navigate("/applicant/patent/step4")} className="px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition text-sm">Quay lại</button>
               <button 
-                onClick={() => navigate("/applicant/patent/step6")} 
+                onClick={() => navigate("/applicant/patent/step5")} 
+                className="px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition text-sm"
+              >
+                Quay lại xác nhận
+              </button>
+              <button 
+                onClick={() => {
+                  if(window.confirm("Bỏ qua thanh toán sẽ khiến hồ sơ ở trạng thái 'Chờ thanh toán'. Tiếp tục?")) {
+                    clearFormData();
+                    navigate("/applicant/dashboard");
+                  }
+                }} 
                 className="flex items-center gap-2 px-10 py-3 bg-gray-100 text-gray-400 rounded-xl font-bold transition text-sm hover:bg-gray-200 hover:text-gray-600"
               >
-                Bỏ qua thanh toán (Dành cho Demo) <ChevronRight size={18} />
+                Bỏ qua & Xem sau <ChevronRight size={18} />
               </button>
             </div>
           </div>
@@ -216,7 +238,6 @@ const Step5_FeePayment = () => {
   );
 };
 
-// Component con giữ nguyên UI
 const FeeRow = ({ label, price, note }) => (
   <div className="flex justify-between items-start py-4 border-b border-gray-50 last:border-0">
     <div className="space-y-1">
@@ -227,4 +248,4 @@ const FeeRow = ({ label, price, note }) => (
   </div>
 );
 
-export default Step5_FeePayment;
+export default Step6_FeePayment;

@@ -22,8 +22,8 @@ import Step1_GeneralInfo from "./pages/Applicant/Patent/Filing/Step1_GeneralInfo
 import Step2_OwnerAuthor from "./pages/Applicant/Patent/Filing/Step2_OwnerAuthor";
 import Step3_Attachments from "./pages/Applicant/Patent/Filing/Step3_Attachments";
 import Step4_Claims from "./pages/Applicant/Patent/Filing/Step4_Claims";
-import Step5_FeePayment from "./pages/Applicant/Patent/Filing/Step5_FeePayment";
-import Step6_Submission from "./pages/Applicant/Patent/Filing/Step6_Submission";
+import Step5_Submission from "./pages/Applicant/Patent/Filing/Step5_Submission";
+import Step6_FeePayment from "./pages/Applicant/Patent/Filing/Step6_FeePayment";
 import SuccessPage from "./pages/Applicant/Patent/Filing/SuccessPage";
 // Thêm 3 dòng này vào đầu file App.jsx
 import AcceptConfirmation from "./pages/Examiner/Patent/AcceptConfirmation";
@@ -65,8 +65,8 @@ function App() {
                 <Route path="step2" element={<Step2_OwnerAuthor />} />
                 <Route path="step3" element={<Step3_Attachments />} />
                 <Route path="step4" element={<Step4_Claims />} />
-                <Route path="step5" element={<Step5_FeePayment />} />
-                <Route path="step6" element={<Step6_Submission />} />
+                <Route path="step5" element={<Step5_Submission />} />
+                <Route path="step6" element={<Step6_FeePayment />} />
                 <Route path="success" element={<SuccessPage />} />
               </Routes>
             </FilingProvider>

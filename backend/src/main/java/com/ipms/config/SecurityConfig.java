@@ -46,18 +46,18 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Cho phép Origin của React (Cổng 5173)
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://*.vercel.app"));
+        // SỬA TẠI ĐÂY: Dùng OriginPatterns để chấp nhận dấu *
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:5173", 
+                "https://*.vercel.app"
+        ));
         
-        // Cho phép tất cả các phương thức (GET, POST, PUT, DELETE,...)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         
-        // Thêm dấu "*" để chấp nhận mọi Header (bao gồm cả ngrok-skip-browser-warning)
+        // Chấp nhận mọi Header (bao gồm cả ngrok-skip-browser-warning từ Frontend)
         configuration.setAllowedHeaders(List.of("*"));
-        // Cho phép gửi kèm Credentials (Cookies, Auth Headers)
-        configuration.setAllowCredentials(true);
         
-        // Expose Headers nếu cần (ví dụ cho JWT)
+        configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(List.of("x-auth-token"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

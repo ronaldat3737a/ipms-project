@@ -15,8 +15,8 @@ const Step2_OwnerAuthor = () => {
     { id: 2, label: "Chủ đơn & Tác giả" },
     { id: 3, label: "Tải lên tài liệu" },
     { id: 4, label: "Yêu cầu bảo hộ" },
-    { id: 5, label: "Tính phí & Thanh toán" },
-    { id: 6, label: "Nộp đơn" },
+    { id: 5, label: "Xác nhận đơn" },
+    { id: 6, label: "Tính phí & Thanh toán" },
   ];
 
   // Logic: Sử dụng thông tin tài khoản đang đăng nhập
