@@ -39,6 +39,11 @@ const Login = () => {
       const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email: formData.email,
         password: formData.password
+      }, {
+            headers: {
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "69420", // Header cực kỳ quan trọng cho Ngrok
+            }
       });
 
       // Dữ liệu người dùng thực tế từ Database (id, fullName, role, email, cccdNumber...)
