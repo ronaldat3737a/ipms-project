@@ -11,7 +11,6 @@ import PatentList from "./pages/Applicant/Patent/PatentList";
 
 // 3. Nhóm Người duyệt đơn (Examiner)
 import ExaminerDashboard from "./pages/Examiner/ExaminerDashboard";
-// LƯU Ý: Chữ 'Patent' phải viết hoa chữ P đúng như folder trong ảnh của bạn
 import PatentReviewList from "./pages/Examiner/Patent/PatentReviewList";
 import UtilityReviewList from "./pages/Examiner/Patent/UtilityReviewList";
 import ApplicationReview from "./pages/Examiner/Patent/ApplicationReview";
@@ -25,7 +24,8 @@ import Step4_Claims from "./pages/Applicant/Patent/Filing/Step4_Claims";
 import Step5_Submission from "./pages/Applicant/Patent/Filing/Step5_Submission";
 import Step6_FeePayment from "./pages/Applicant/Patent/Filing/Step6_FeePayment";
 import SuccessPage from "./pages/Applicant/Patent/Filing/SuccessPage";
-// Thêm 3 dòng này vào đầu file App.jsx
+
+// 5. Nhóm Examiner xử lý (Actions)
 import AcceptConfirmation from "./pages/Examiner/Patent/AcceptConfirmation";
 import RejectConfirmation from "./pages/Examiner/Patent/RejectConfirmation";
 import CorrectionRequest from "./pages/Examiner/Patent/CorrectionRequest";
@@ -39,16 +39,16 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* --- ĐÓN KẾT QUẢ VNPAY (QUAN TRỌNG NHẤT - PHẢI Ở ĐÂY) --- */}
+        {/* Link VNPay gọi về là /payment-result nên Route này phải nằm ở cấp cao nhất */}
+        <Route path="/payment-result" element={<SuccessPage />} />
+
         {/* --- DASHBOARD & LISTS (EXAMINER) --- */}
         <Route path="/examiner-dashboard" element={<ExaminerDashboard />} />
-        
-        {/* Route cho trang danh sách - Khi ấn từ Sidebar */}
         <Route path="/examiner/patents" element={<PatentReviewList />} />
         <Route path="/examiner/utility-solutions" element={<UtilityReviewList />} />
         
-        {/* Route cho trang thẩm định chi tiết - Khi ấn nút Duyệt hồ sơ */}
         <Route path="/examiner/review/:type/:id" element={<ApplicationReview />} />
-        {/* Các Route cho Examiner xử lý hồ sơ */}
         <Route path="/examiner/review/:type/:id/accept" element={<AcceptConfirmation />} />
         <Route path="/examiner/review/:type/:id/reject" element={<RejectConfirmation />} />
         <Route path="/examiner/review/:type/:id/correction" element={<CorrectionRequest />} />
@@ -57,7 +57,7 @@ function App() {
         <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
         <Route path="/applicant/patent" element={<PatentList />} />
 
-        {/* --- QUY TRÌNH NỘP ĐƠN SÁNG CHẾ --- */}
+        {/* --- QUY TRÌNH NỘP ĐƠN (NESTED ROUTES) --- */}
         <Route path="/applicant/patent/*" element={
             <FilingProvider>
               <Routes>
@@ -67,7 +67,8 @@ function App() {
                 <Route path="step4" element={<Step4_Claims />} />
                 <Route path="step5" element={<Step5_Submission />} />
                 <Route path="step6" element={<Step6_FeePayment />} />
-                <Route path="payment-result" element={<SuccessPage />} />
+                {/* Giữ success ở đây nếu bạn muốn điều hướng nội bộ từ bước 6 sang (không qua VNPay) */}
+                <Route path="success" element={<SuccessPage />} />
               </Routes>
             </FilingProvider>
         } />
