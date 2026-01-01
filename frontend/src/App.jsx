@@ -67,7 +67,7 @@ function App() {
                 <Route path="step4" element={<Step4_Claims />} />
                 <Route path="step5" element={<Step5_Submission />} />
                 <Route path="step6" element={<Step6_FeePayment />} />
-                <Route path="success" element={<SuccessPage />} />
+                <Route path="payment-result" element={<SuccessPage />} />
               </Routes>
             </FilingProvider>
         } />
