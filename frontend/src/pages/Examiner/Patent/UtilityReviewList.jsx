@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, UserCheck, FileText, Lightbulb, Package, 
@@ -8,15 +8,46 @@ import {
 const UtilityReviewList = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("hinh-thuc");
+  
+  // --- QUẢN LÝ DỮ LIỆU THẬT ---
+  const [patents, setPatents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const MOCK_DATA = [
-    { id: "2-2025-00012", times: 1, status: "Đã sửa - Chờ duyệt lại", date: "2025-01-24", owner: "Công ty ABC" },
-    { id: "2-2025-00015", times: 1, status: "Chờ phí nội dung", date: "2025-02-05", owner: "Lê Văn L" },
-  ];
+  // --- MAPPING TRẠNG THÁI TAB VỚI ENUM BACKEND ---
+  const getStatusByTab = (tab) => {
+    switch(tab) {
+      case "hinh-thuc": return "MOI";
+      case "phi-nd": return "CHO_NOP_PHI_ND";
+      case "noi-dung": return "DANG_TD_NOI_DUNG";
+      case "cap-bang": return "DA_CAP_VAN_BANG";
+      default: return "MOI";
+    }
+  };
+
+  // --- FETCH DỮ LIỆU TỪ API ---
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Lấy toàn bộ đơn GPHU (Giai phap huu ich)
+        const response = await fetch("http://localhost:8080/api/patents?type=GIAI_PHAP_HUU_ICH");
+        const data = await response.json();
+        
+        // Lọc dữ liệu theo tab hiện tại dựa trên trường status của Backend
+        const filtered = data.filter(item => item.status === getStatusByTab(activeTab));
+        setPatents(filtered);
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách GPHU:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [activeTab]); // Tự động load lại khi chuyển Tab
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
-      {/* --- SIDEBAR: KHUNG GIỐNG 100% DASHBOARD --- */}
+      {/* --- SIDEBAR (GIỮ NGUYÊN 100%) --- */}
       <aside className="w-72 bg-slate-900 text-white flex flex-col shadow-2xl shrink-0">
         <div className="p-8 border-b border-slate-800">
           <div className="flex items-center justify-center space-x-2">
@@ -27,14 +58,12 @@ const UtilityReviewList = () => {
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-          <SidebarItem icon={<LayoutDashboard size={20} />} label="Dashboard" onClick={() => navigate("/examiner-dashboard")} />
+          <SidebarItem icon={<LayoutDashboard size={20} />} label="Dashboard" onClick={() => navigate("/examiner/dashboard")} />
           <SidebarItem icon={<FileText size={18} />} label="TĐ Sáng chế" onClick={() => navigate("/examiner/patents")} />
           <SidebarItem icon={<Lightbulb size={18} />} label="TĐ Giải pháp hữu ích" active />
           <SidebarItem icon={<Package size={18} />} label="TĐ Kiểu dáng công nghiệp" />
           <SidebarItem icon={<ShieldCheck size={18}/>} label="TĐ Nhãn hiệu" />
-          <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">
-            Hệ thống
-          </div>
+          <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">Hệ thống</div>
           <SidebarItem icon={<CreditCard size={18} />} label="Theo dõi Lệ phí" />
           <SidebarItem icon={<Settings size={18} />} label="Cấu hình Quy trình" />
         </nav>
@@ -45,7 +74,7 @@ const UtilityReviewList = () => {
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT Area --- */}
+      {/* --- MAIN CONTENT --- */}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-20 bg-white border-b flex items-center justify-between px-10 shadow-sm z-10 shrink-0">
           <h1 className="text-xl font-bold text-blue-800 uppercase tracking-tighter">Đơn đăng kí giải pháp hữu ích</h1>
@@ -61,7 +90,7 @@ const UtilityReviewList = () => {
             <p className="text-sm text-slate-500 font-medium">Quản lý các giải pháp hữu ích theo trạng thái thẩm định.</p>
           </div>
 
-          {/* TAB BAR */}
+          {/* TAB BAR (GIỮ NGUYÊN) */}
           <div className="flex bg-gray-200/50 p-1 rounded-lg w-full">
             <TabItem label="Thẩm định Hình thức" active={activeTab === "hinh-thuc"} onClick={() => setActiveTab("hinh-thuc")} />
             <TabItem label="Chờ phí Nội dung" active={activeTab === "phi-nd"} onClick={() => setActiveTab("phi-nd")} />
@@ -73,18 +102,18 @@ const UtilityReviewList = () => {
           <div className="flex gap-4 items-center">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input type="text" placeholder="Tìm kiếm mã đơn, tên người nộp..." className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20" />
+              <input type="text" placeholder="Tìm kiếm mã đơn, tên người nộp..." className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg outline-none" />
             </div>
             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg font-bold text-sm text-slate-700 hover:bg-gray-50">
               <Filter size={18} /> Lọc
             </button>
           </div>
 
-          {/* TABLE - GIỐNG 100% ẢNH MẪU */}
+          {/* TABLE - DỮ LIỆU THẬT */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b">
               <h3 className="font-bold text-slate-800">Danh sách đơn GPHU</h3>
-              <p className="text-xs text-slate-500 mt-1">Tổng cộng {MOCK_DATA.length} đơn đang chờ duyệt</p>
+              <p className="text-xs text-slate-500 mt-1">Tổng cộng {patents.length} đơn trong trạng thái này</p>
             </div>
             <table className="w-full text-left">
               <thead className="bg-gray-50 text-[11px] font-black text-slate-500 uppercase tracking-widest border-b">
@@ -97,21 +126,33 @@ const UtilityReviewList = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {MOCK_DATA.map((item) => (
-                  <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
-                    {/* SỬA LẠI ĐOẠN NÀY: onClick nằm ở <td> để đi đến trang chi tiết chính xác */}
-                    <td 
-                      className="px-8 py-5 font-bold text-blue-600 underline text-sm cursor-pointer hover:text-blue-800 transition-colors"
-                      onClick={() => navigate(`/examiner/review/giai-phap-huu-ich/${item.id}`)}
-                    >
-                      {item.id}
-                    </td>
-                    <td className="px-8 py-5 text-sm font-medium">{item.times}</td>
-                    <td className="px-8 py-5 text-sm font-black text-slate-700">{item.status}</td>
-                    <td className="px-8 py-5 text-sm text-slate-500 font-medium">{item.date}</td>
-                    <td className="px-8 py-5 text-sm text-slate-700 font-medium">{item.owner}</td>
-                  </tr>
-                ))}
+                {loading ? (
+                  <tr><td colSpan="5" className="px-8 py-10 text-center text-slate-400 italic">Đang tải dữ liệu...</td></tr>
+                ) : patents.length > 0 ? (
+                  patents.map((item) => (
+                    <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
+                      <td 
+                        className="px-8 py-5 font-bold text-blue-600 underline text-sm cursor-pointer hover:text-blue-800 transition-colors"
+                        // QUAN TRỌNG: Điều hướng bằng item.id (UUID) để Backend xử lý được
+                        onClick={() => navigate(`/examiner/review/giai-phap-huu-ich/${item.id}`)}
+                      >
+                        {item.appNo || "CHƯA CẤP MÃ"}
+                      </td>
+                      <td className="px-8 py-5 text-sm font-medium">1</td>
+                      <td className="px-8 py-5 text-sm font-black text-slate-700">
+                        {item.status === "MOI" ? "Chờ duyệt hình thức" : item.status}
+                      </td>
+                      <td className="px-8 py-5 text-sm text-slate-500 font-medium">
+                        {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                      </td>
+                      <td className="px-8 py-5 text-sm text-slate-700 font-medium">
+                        {item.applicant?.fullName || "N/A"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan="5" className="px-8 py-10 text-center text-slate-400 italic">Không có hồ sơ nào trong mục này.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -121,7 +162,7 @@ const UtilityReviewList = () => {
   );
 };
 
-// Sub-components
+// Sub-components (Giữ nguyên)
 const TabItem = ({ label, active, onClick }) => (
   <button onClick={onClick} className={`flex-1 py-3 text-xs font-bold rounded-md transition-all ${active ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
     {label}

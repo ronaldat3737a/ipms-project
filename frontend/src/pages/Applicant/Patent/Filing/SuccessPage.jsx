@@ -1,39 +1,42 @@
-import React, { useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { CheckCircle, Bell } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { CheckCircle, Bell, AlertCircle, CreditCard, ArrowRight } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
 const SuccessPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { formData, clearFormData } = useFilingData();
 
-  // Lấy mã số đơn (appNo) được truyền từ Step 6 qua state của router
-  const appNo = location.state?.appNo || "Đang cập nhật...";
-  
-  // Lấy ngày hiện tại định dạng DD/MM/YYYY
+  // --- LOGIC NHẬN KẾT QUẢ VNPAY ---
+  const vnpResponseCode = searchParams.get("vnp_ResponseCode");
+  const vnpTransactionNo = searchParams.get("vnp_TransactionNo");
+  const vnpAmount = searchParams.get("vnp_Amount");
+  const isFromPayment = vnpResponseCode !== null;
+
+  // Lấy mã số đơn: Nếu từ thanh toán thì lấy vnp_TxnRef, nếu từ Step 6 thì lấy state
+  const appNo = isFromPayment 
+    ? searchParams.get("vnp_TxnRef") 
+    : (location.state?.appNo || "Đang cập nhật...");
+
+  const isPaymentSuccess = vnpResponseCode === "00";
+
+  // Lấy ngày hiện tại
   const today = new Date().toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 
-  // Logic khi quay lại Dashboard
   const handleReturnDashboard = () => {
-    clearFormData(); // Xóa dữ liệu tạm thời trong Context sau khi nộp thành công
+    clearFormData();
     navigate("/applicant-dashboard");
   };
 
-  // Bảo vệ trang: Nếu người dùng truy cập trực tiếp vào link này mà không qua nộp đơn, đẩy về trang chủ
-  useEffect(() => {
-    if (!location.state) {
-      // navigate("/applicant/patent"); // Bỏ comment nếu bạn muốn bảo mật chặt chẽ
-    }
-  }, [location, navigate]);
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-800">
-      {/* --- HEADER --- */}
+      {/* --- HEADER GIỮ NGUYÊN --- */}
       <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-end px-8 sticky top-0 z-10">
         <div className="flex items-center gap-6">
           <Bell size={20} className="text-gray-400" />
@@ -47,77 +50,100 @@ const SuccessPage = () => {
         </div>
       </header>
 
-      {/* --- MAIN CONTENT --- */}
       <main className="flex-grow flex items-center justify-center p-6">
         <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-sm border border-gray-100 p-12 flex flex-col items-center">
           
-          {/* Success Icon */}
-          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6">
-            <CheckCircle size={40} className="text-green-500" />
+          {/* ICON HIỂN THỊ THEO TRẠNG THÁI */}
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${
+            isFromPayment && !isPaymentSuccess ? "bg-red-50" : "bg-green-50"
+          }`}>
+            {isFromPayment && !isPaymentSuccess ? (
+              <AlertCircle size={40} className="text-red-500" />
+            ) : (
+              <CheckCircle size={40} className="text-green-500" />
+            )}
           </div>
 
-          <h1 className="text-3xl font-black mb-4 tracking-tight text-center">Nộp đơn thành công!</h1>
+          <h1 className="text-3xl font-black mb-4 tracking-tight text-center">
+            {isFromPayment 
+              ? (isPaymentSuccess ? "Thanh toán thành công!" : "Giao dịch thất bại")
+              : "Nộp đơn thành công!"}
+          </h1>
+          
           <p className="text-gray-500 text-center text-sm font-medium leading-relaxed max-w-md mb-10">
-            Hệ thống đã tiếp nhận hồ sơ của bạn và chuyển đến Cục Sở hữu trí tuệ để xử lý.
+            {isFromPayment && !isPaymentSuccess 
+              ? "Đã có lỗi xảy ra trong quá trình thanh toán. Vui lòng kiểm tra lại số dư hoặc thử lại sau."
+              : "Hệ thống đã ghi nhận hồ sơ của bạn và chuyển đến Cục Sở hữu trí tuệ để xử lý."}
           </p>
 
-          {/* Tóm tắt đơn đăng ký - HIỂN THỊ DỮ LIỆU THẬT */}
+          {/* --- TÓM TẮT ĐƠN ĐĂNG KÝ --- */}
           <section className="w-full bg-gray-50/50 rounded-2xl p-8 border border-gray-100 mb-10">
-            <h3 className="font-bold text-sm mb-6 uppercase tracking-wider text-gray-700">Tóm tắt đơn đăng ký</h3>
+            <h3 className="font-bold text-sm mb-6 uppercase tracking-wider text-gray-700 flex items-center gap-2">
+              <CreditCard size={16} /> Tóm tắt đơn & Giao dịch
+            </h3>
             <div className="space-y-4">
-              <InfoRow 
-                label="Mã số đơn chính thức:" 
-                value={appNo} 
-                isHighlight 
-              />
-              <InfoRow 
-                label="Ngày nộp đơn:" 
-                value={today} 
-              />
-              <InfoRow 
-                label="Loại đơn:" 
-                value={formData.appType || "Sáng chế / Giải pháp"} 
-              />
+              <InfoRow label="Mã số đơn:" value={appNo} isHighlight />
+              
+              {isFromPayment && (
+                <>
+                  <InfoRow 
+                    label="Mã giao dịch VNPay:" 
+                    value={vnpTransactionNo} 
+                  />
+                  <InfoRow 
+                    label="Số tiền đã nộp:" 
+                    value={`${(parseInt(vnpAmount) / 100).toLocaleString()} VND`} 
+                  />
+                </>
+              )}
+
+              <InfoRow label="Ngày thực hiện:" value={today} />
+              <InfoRow label="Loại đơn:" value={formData.appType || "Sáng chế / Giải pháp"} />
               <InfoRow 
                 label="Trạng thái hiện tại:" 
-                value="Đã tiếp nhận (Chờ thẩm định)" 
+                value={isFromPayment && !isPaymentSuccess ? "Chờ thanh toán lại" : "Đã tiếp nhận (Đang xử lý)"} 
                 isStatus 
+                color={isFromPayment && !isPaymentSuccess ? "red" : "green"}
               />
             </div>
           </section>
 
-          {/* Các bước tiếp theo */}
-          <section className="w-full space-y-6 mb-12 px-4">
-            <h3 className="font-bold text-center text-lg">Các bước tiếp theo</h3>
-            <ul className="space-y-4">
-              <li className="flex gap-4">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 shrink-0"></span>
-                <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                  <span className="font-bold text-gray-800">Thẩm định hình thức (Dự kiến 01 tháng):</span> Cục Sở hữu trí tuệ sẽ xem xét tính hợp lệ của hồ sơ dựa trên mã số đơn <span className="font-mono font-bold text-blue-600">{appNo}</span>.
-                </p>
-              </li>
-              <li className="flex gap-4">
-                <span className="w-1.5 h-1.5 bg-black rounded-full mt-2 shrink-0"></span>
-                <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                  <span className="font-bold text-gray-800">Thông báo kết quả:</span> Bạn sẽ nhận được thông báo về kết quả thẩm định hình thức qua email đã đăng ký.
-                </p>
-              </li>
-              <li className="flex gap-4">
-                <span className="w-1.5 h-1.5 bg-black rounded-full mt-2 shrink-0"></span>
-                <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                  <span className="font-bold text-gray-800">Quản lý hồ sơ:</span> Bạn có thể theo dõi tiến độ chi tiết tại mục "Đơn của tôi" trên Dashboard.
-                </p>
-              </li>
-            </ul>
-          </section>
+          {/* CÁC BƯỚC TIẾP THEO */}
+          {(!isFromPayment || isPaymentSuccess) && (
+            <section className="w-full space-y-6 mb-12 px-4 border-l-2 border-blue-500 ml-2">
+              <h3 className="font-bold text-lg text-blue-700 pl-4">Các bước tiếp theo</h3>
+              <ul className="space-y-4">
+                <StepItem 
+                  title="Thẩm định hình thức (Dự kiến 01 tháng):" 
+                  desc={`Cục SHTT sẽ xem xét tính hợp lệ của hồ sơ dựa trên mã số đơn ${appNo}.`}
+                  active
+                />
+                <StepItem 
+                  title="Thông báo kết quả:" 
+                  desc="Bạn sẽ nhận được thông báo qua email và hệ thống khi có kết quả duyệt hình thức."
+                />
+              </ul>
+            </section>
+          )}
 
-          {/* Nút điều hướng */}
-          <button 
-            onClick={handleReturnDashboard}
-            className="w-full max-w-xs py-3.5 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition shadow-md shadow-blue-100"
-          >
-            Quay lại Dashboard
-          </button>
+          {/* NÚT ĐIỀU HƯỚNG */}
+          <div className="flex flex-col w-full items-center gap-4">
+            <button 
+              onClick={handleReturnDashboard}
+              className="w-full max-w-xs py-3.5 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition shadow-md shadow-blue-100"
+            >
+              Quay lại Dashboard
+            </button>
+            
+            {isFromPayment && !isPaymentSuccess && (
+              <button 
+                onClick={() => navigate("/applicant/patent/step5")}
+                className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1"
+              >
+                Thử thanh toán lại <ArrowRight size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </main>
 
@@ -128,19 +154,26 @@ const SuccessPage = () => {
   );
 };
 
-/**
- * Helper Component cập nhật để hiển thị nổi bật mã đơn
- */
-const InfoRow = ({ label, value, isStatus, isHighlight }) => (
+// Helper Components
+const InfoRow = ({ label, value, isStatus, isHighlight, color }) => (
   <div className="flex justify-between items-center text-sm border-b border-gray-100/50 pb-2 last:border-0 last:pb-0">
     <span className="text-gray-500 font-medium">{label}</span>
     <span className={`font-bold ${
-      isStatus ? "text-green-600 bg-green-50 px-2 py-0.5 rounded text-[11px]" : 
+      isStatus ? `text-${color}-600 bg-${color}-50 px-2 py-0.5 rounded text-[11px]` : 
       isHighlight ? "text-blue-600 font-mono text-base" : "text-gray-800"
     }`}>
       {value}
     </span>
   </div>
+);
+
+const StepItem = ({ title, desc, active }) => (
+  <li className="flex gap-4 pl-4 relative">
+    <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${active ? "bg-blue-500" : "bg-gray-300"}`}></div>
+    <p className="text-xs text-gray-600 leading-relaxed font-medium">
+      <span className={`font-bold ${active ? "text-gray-800" : "text-gray-500"}`}>{title}</span> {desc}
+    </p>
+  </li>
 );
 
 export default SuccessPage;

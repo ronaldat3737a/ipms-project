@@ -33,7 +33,10 @@ const Login = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:8080/api/auth/login", {
+      // Lấy link API từ biến môi trường Vercel, nếu không có thì mặc định dùng localhost
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email: formData.email,
         password: formData.password
       });

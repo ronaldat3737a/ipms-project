@@ -56,7 +56,7 @@ public class PatentService {
                 .summary(dto.getSummary())
                 .filingBasis(FilingBasis.TRUC_TUYEN)
                 .user(currentUser)
-                .status(AppStatus.MOI)
+                .status(AppStatus.CHO_NOP_PHI_GD1)
                 .build();
 
         app = applicationRepository.save(app);
@@ -234,8 +234,14 @@ public Application updateApplicationStatus(UUID id, String status) {
     Application app = applicationRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Hồ sơ không tồn tại"));
     
-    // Chuyển chuỗi String sang Enum AppStatus
-    app.setStatus(AppStatus.valueOf(status)); 
+    try {
+        // Chuyển chuỗi String sang Enum AppStatus một cách an toàn
+        AppStatus newStatus = AppStatus.valueOf(status.toUpperCase());
+        app.setStatus(newStatus);
+    } catch (IllegalArgumentException e) {
+        throw new RuntimeException("Trạng thái không hợp lệ: " + status);
+    }
+
     return applicationRepository.save(app);
 }
     

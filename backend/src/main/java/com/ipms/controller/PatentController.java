@@ -6,13 +6,25 @@ import com.ipms.dto.PatentSubmissionDTO;
 import com.ipms.entity.Application;
 import com.ipms.service.PatentService;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestMethod;
+// Import cho xử lý File và Path (Java chuẩn)
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.net.MalformedURLException;
+
+// Import cho Spring Framework (Xử lý Resource và Header)
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
 
 import java.util.Map;
 import java.util.List;
@@ -73,6 +85,36 @@ public ResponseEntity<Application> updateStatus(
     String newStatus = statusUpdate.get("status");
     Application updatedApp = patentService.updateApplicationStatus(id, newStatus);
     return ResponseEntity.ok(updatedApp);
+}
+    // Bổ sung vào PatentController.java
+
+
+
+@GetMapping("/download/{fileName:.+}")
+public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) {
+    try {
+        // 1. Giải mã tên file từ URL (Chuyển các ký tự mã hóa về tiếng Việt chuẩn)
+        String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8.name());
+        
+        // 2. Lấy đường dẫn tuyệt đối đến thư mục uploads
+        Path filePath = Paths.get("uploads").toAbsolutePath().resolve(decodedFileName).normalize();
+        
+        // In log để kiểm tra (Xem trong console Java xem có còn hiện ?? không)
+        System.out.println("DEBUG: Dang tim file tai: " + filePath.toString());
+
+        Resource resource = new UrlResource(filePath.toUri());
+
+        if (resource.exists() && resource.isReadable()) {
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+                .body(resource);
+        } else {
+            System.err.println("DEBUG: Khong tim thay file tren o cung: " + decodedFileName);
+            return ResponseEntity.notFound().build();
+        }
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().build();
+    }
 }
 
 }

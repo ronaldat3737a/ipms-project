@@ -31,6 +31,31 @@ const ApplicationReview = () => {
     if (id) fetchDetail();
   }, [id]);
 
+  const handleDownload = (fullFileName) => {
+  if (!fullFileName) {
+    alert("Không tìm thấy tên tập tin!");
+    return;
+  }
+
+  try {
+    // 1. Mã hóa tên file để xử lý các ký tự tiếng Việt và khoảng trắng
+    const encodedName = encodeURIComponent(fullFileName);
+    const url = `http://localhost:8080/api/patents/download/${encodedName}`;
+    
+    // 2. Sử dụng cách mở tab mới hoặc thẻ <a> ẩn
+    const link = document.createElement('a');
+    link.href = url;
+    // Thuộc tính download giúp trình duyệt hiểu đây là lệnh tải file
+    link.setAttribute('download', fullFileName); 
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error("Lỗi khi tải file:", error);
+    alert("Có lỗi xảy ra khi tải tập tin.");
+  }
+};
+
   // Hiển thị màn hình chờ khi đang load
   if (loading) return (
     <div className="h-screen flex items-center justify-center font-sans text-gray-500">
@@ -147,7 +172,7 @@ const ApplicationReview = () => {
               </div>
             </div>
 
-            {/* Danh sách tác giả (Authors) */}
+      {/* Danh sách tác giả (Authors) */}
 <div className="p-6 space-y-4 text-sm">
   <h3 className="font-bold text-[#212529] mb-4 flex items-center gap-2 underline underline-offset-4 decoration-[#DEE2E6]">
     <Users size={14} /> Danh sách tác giả
@@ -158,7 +183,7 @@ const ApplicationReview = () => {
         <th className="pb-3 font-semibold w-12">STT</th>
         <th className="pb-3 font-semibold">Họ tên</th>
         <th className="pb-3 font-semibold">Quốc tịch</th>
-        <th className="pb-3 font-semibold">CCCD</th> {/* Cột mới hoàn thiện */}
+        <th className="pb-3 font-semibold">CCCD</th>
       </tr>
     </thead>
     <tbody className="text-xs">
@@ -168,10 +193,7 @@ const ApplicationReview = () => {
             <td className="py-3 text-[#6C757D]">{index + 1}</td>
             <td className="py-3 font-medium text-[#212529]">{author.fullName}</td>
             <td className="py-3 text-[#495057]">{author.nationality}</td>
-            <td className="py-3 font-mono text-[#495057]">
-              {/* Lấy dữ liệu idNumber từ DB */}
-              {author.idNumber || "N/A"}
-            </td>
+            <td className="py-3 font-mono text-[#495057]">{author.idNumber || "N/A"}</td>
           </tr>
         ))
       ) : (
@@ -184,8 +206,10 @@ const ApplicationReview = () => {
     </tbody>
   </table>
 </div>
+
           </div>
         </section>
+
 
         {/* 3. CẤU TRÚC YÊU CẦU BẢO HỘ (Claims) */}
         <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
@@ -204,31 +228,38 @@ const ApplicationReview = () => {
             ))}
           </div>
         </section>
-
-        {/* 4. TÀI LIỆU (Attachments) */}
-        <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
-          <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
-            <FileText size={18} className="text-[#495057]" />
-            <h2 className="font-bold text-[#495057]">4. Tài liệu đính kèm</h2>
+{/* 4. TÀI LIỆU (Attachments) */}
+<section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
+  <div className="bg-[#F8F9FA] px-6 py-3 border-b border-[#DEE2E6] flex items-center gap-2">
+    <FileText size={18} className="text-[#495057]" />
+    <h2 className="font-bold text-[#495057]">4. Tài liệu đính kèm</h2>
+  </div>
+  <div className="p-4 space-y-4">
+    <div className="grid grid-cols-2 gap-4">
+      {app.attachments && app.attachments.length > 0 ? (
+        app.attachments.map((doc, index) => (
+          <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-[#F8F9FA] group">
+            <div className="flex flex-col">
+              <span className="text-sm font-bold flex items-center gap-2">
+                <FileText size={14} className="text-blue-400" /> {doc.docType}
+              </span>
+              {/* Hiển thị tên file để kiểm tra mã UUID */}
+              <span className="text-[10px] text-gray-400 italic">{doc.fileName}</span>
+            </div>
+            <button 
+              onClick={() => handleDownload(doc.fileName)}
+              className="text-[#0D6EFD] text-xs font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:underline"
+            >
+              Tải xuống <Download size={12} />
+            </button>
           </div>
-          <div className="p-4 space-y-4">
-               <div className="grid grid-cols-2 gap-4">
-                  {app.attachments?.map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-[#F8F9FA] group">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold flex items-center gap-2">
-                           <FileText size={14} className="text-blue-400" /> {doc.docType}
-                        </span>
-                        <span className="text-[10px] text-gray-400 italic">{doc.fileName}</span>
-                      </div>
-                      <button className="text-[#0D6EFD] text-xs font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Tải xuống <Download size={12} />
-                      </button>
-                    </div>
-                  ))}
-               </div>
-          </div>
-        </section>
+        ))
+      ) : (
+        <p className="text-sm text-gray-400 italic px-2">Hồ sơ không có tài liệu đính kèm.</p>
+      )}
+    </div>
+  </div>
+</section>
 
         {/* 5. BIÊN LAI THEO GIAI ĐOẠN - NẰM DƯỚI PHẦN TÀI LIỆU */}
         <section className="bg-white rounded-lg border border-[#DEE2E6] overflow-hidden">
