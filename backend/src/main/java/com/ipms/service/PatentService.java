@@ -129,6 +129,11 @@ public class PatentService {
                 .appNo(null) // appNo là null ở bước này
                 .build();
 
+        // SỬA LỖI: Khởi tạo các danh sách để quản lý quan hệ hai chiều
+        app.setAuthors(new ArrayList<>());
+        app.setClaims(new ArrayList<>());
+        app.setAttachments(new ArrayList<>());
+
         // Lưu đơn chính để lấy ID
         app = applicationRepository.save(app);
 
@@ -155,6 +160,7 @@ public class PatentService {
                         .idNumber(aDto.getIdNumber())
                         .orderIndex(i + 1)
                         .build();
+                app.getAuthors().add(author); // Quản lý quan hệ 2 chiều
                 authorRepository.save(author);
             }
         }
@@ -249,6 +255,7 @@ public class PatentService {
                         .extension(getFileExtension(originalFileName))
                         .status(FileStatus.HOAN_TAT)
                         .build();
+                app.getAttachments().add(attachment); // Quản lý quan hệ 2 chiều
                 attachmentRepository.save(attachment);
             }
         } catch (IOException e) {
@@ -275,6 +282,7 @@ public class PatentService {
                 .status(ClaimStatus.HOP_LE)
                 .build();
         
+        app.getClaims().add(claim); // Quản lý quan hệ 2 chiều
         claim = claimRepository.save(claim);
         claimMap.put(idx, claim);
     }
