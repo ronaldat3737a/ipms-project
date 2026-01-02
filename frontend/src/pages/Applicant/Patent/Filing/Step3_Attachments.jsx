@@ -6,9 +6,10 @@ import {
 } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
-// Cấu hình thư viện PDF.js
+// SỬA LỖI: Cấu hình PDF.js worker đúng chuẩn để fix lỗi 404
 import * as pdfjsLib from "pdfjs-dist";
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 const Step3_Attachments = () => {
   const navigate = useNavigate();

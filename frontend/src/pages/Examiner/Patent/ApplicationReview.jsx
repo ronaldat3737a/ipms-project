@@ -5,6 +5,11 @@ import {
   XCircle, ChevronDown, Info, Users, FileText, Layers, History
 } from "lucide-react";
 
+// SỬA LỖI: Cấu hình PDF.js worker để fix lỗi 404
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+
 const ApplicationReview = () => {
   const navigate = useNavigate();
   const { id, type } = useParams(); // Lấy ID hồ sơ từ URL
