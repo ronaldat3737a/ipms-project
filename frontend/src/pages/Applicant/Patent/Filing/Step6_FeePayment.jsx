@@ -71,11 +71,16 @@ const Step6_FeePayment = () => {
         // --- BƯỚC 1: TẠO ĐƠN (CREATE APPLICATION) ---
         console.log("Bước 1: Đang tạo đơn...");
         const submissionData = new FormData();
-        submissionData.append("patentData", JSON.stringify(formData));
+        // Loại bỏ trường 'files' không cần thiết khỏi JSON
+        const { files, ...restOfFormData } = formData;
+        submissionData.append("patentData", JSON.stringify(restOfFormData));
 
-        if (formData.files && formData.files.length > 0) {
-            for (const file of formData.files) {
-                submissionData.append("files", file);
+        // SỬA LỖI: Lặp qua đúng mảng `formData.attachments` và lấy `attachment.file`
+        if (formData.attachments && formData.attachments.length > 0) {
+            for (const attachment of formData.attachments) {
+                if (attachment.file) { // Đảm bảo đối tượng file tồn tại
+                    submissionData.append("files", attachment.file);
+                }
             }
         }
         
