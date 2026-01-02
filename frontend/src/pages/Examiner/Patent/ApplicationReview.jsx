@@ -35,31 +35,6 @@ const ApplicationReview = () => {
     if (id) fetchDetail();
   }, [id]);
 
-  const handleDownload = (fullFileName) => {
-  if (!fullFileName) {
-    alert("Không tìm thấy tên tập tin!");
-    return;
-  }
-
-  try {
-    // 1. Mã hóa tên file để xử lý các ký tự tiếng Việt và khoảng trắng
-    const encodedName = encodeURIComponent(fullFileName);
-    const url = `http://localhost:8080/api/patents/download/${encodedName}`;
-    
-    // 2. Sử dụng cách mở tab mới hoặc thẻ <a> ẩn
-    const link = document.createElement('a');
-    link.href = url;
-    // Thuộc tính download giúp trình duyệt hiểu đây là lệnh tải file
-    link.setAttribute('download', fullFileName); 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    console.error("Lỗi khi tải file:", error);
-    alert("Có lỗi xảy ra khi tải tập tin.");
-  }
-};
-
   // Hiển thị màn hình chờ khi đang load
   if (loading) return (
     <div className="h-screen flex items-center justify-center font-sans text-gray-500">
@@ -250,12 +225,16 @@ const ApplicationReview = () => {
               {/* Hiển thị tên file để kiểm tra mã UUID */}
               <span className="text-[10px] text-gray-400 italic">{doc.fileName}</span>
             </div>
-            <button 
-              onClick={() => handleDownload(doc.fileName)}
+            {/* SỬA LỖI DOWNLOAD: Dùng thẻ <a> với href trỏ thẳng vào API mới */}
+            <a 
+              href={`http://localhost:8080/api/attachments/${doc.id}/download`}
+              download={doc.fileName}
+              target="_blank" // Mở trong tab mới để không làm gián đoạn trang hiện tại
+              rel="noopener noreferrer"
               className="text-[#0D6EFD] text-xs font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:underline"
             >
               Tải xuống <Download size={12} />
-            </button>
+            </a>
           </div>
         ))
       ) : (

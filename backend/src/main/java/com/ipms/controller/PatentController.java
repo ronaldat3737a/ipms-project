@@ -98,32 +98,4 @@ public ResponseEntity<Application> updateStatus(
     // Bổ sung vào PatentController.java
 
 
-
-@GetMapping("/download/{fileName:.+}")
-public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) {
-    try {
-        // 1. Giải mã tên file từ URL (Chuyển các ký tự mã hóa về tiếng Việt chuẩn)
-        String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8.name());
-        
-        // 2. Lấy đường dẫn tuyệt đối đến thư mục uploads
-        Path filePath = Paths.get("uploads").toAbsolutePath().resolve(decodedFileName).normalize();
-        
-        // In log để kiểm tra (Xem trong console Java xem có còn hiện ?? không)
-        System.out.println("DEBUG: Dang tim file tai: " + filePath.toString());
-
-        Resource resource = new UrlResource(filePath.toUri());
-
-        if (resource.exists() && resource.isReadable()) {
-            return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
-                .body(resource);
-        } else {
-            System.err.println("DEBUG: Khong tim thay file tren o cung: " + decodedFileName);
-            return ResponseEntity.notFound().build();
-        }
-    } catch (Exception e) {
-        return ResponseEntity.internalServerError().build();
-    }
-}
-
 }
