@@ -67,8 +67,8 @@ function App() {
                 <Route path="step4" element={<Step4_Claims />} />
                 <Route path="step5" element={<Step5_Submission />} />
                 <Route path="step6" element={<Step6_FeePayment />} />
-                {/* Giữ success ở đây nếu bạn muốn điều hướng nội bộ từ bước 6 sang (không qua VNPay) */}
-                <Route path="success" element={<SuccessPage />} />
+                {/* Giữ payment-result ở đây nếu bạn muốn điều hướng nội bộ từ bước 6 sang (không qua VNPay) */}
+                <Route path="payment-result" element={<SuccessPage />} />
               </Routes>
             </FilingProvider>
         } />

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, ChevronDown, Search } from "lucide-react";
+import { useFilingData } from "./Filing/FilingContext"; 
 
 const PatentFiling = () => {
   const navigate = useNavigate();
@@ -9,15 +10,7 @@ const PatentFiling = () => {
   const [currentStep, setCurrentStep] = useState(1);
 
   // 2. Quản lý dữ liệu Form
-  const [formData, setFormData] = useState({
-    appType: "Sáng chế",
-    title: "",
-    solutionDetail: "",
-    solutionType: "", // Sẽ nhận giá trị 'Sản phẩm' hoặc 'Quy trình'
-    technicalField: "",
-    ipcCode: "",
-    summary: "",
-  });
+  const { formData, updateFormData } = useFilingData();
 
   // Cấu trúc các bước nộp đơn
   const steps = [
@@ -30,9 +23,9 @@ const PatentFiling = () => {
   ];
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
+  const { name, value } = e.target;
+  updateFormData({ [name]: value });
+};
 
   // Tính số từ cho phần tóm tắt
   const wordCount = formData.summary.trim() ? formData.summary.trim().split(/\s+/).length : 0;
@@ -214,7 +207,7 @@ const PatentFiling = () => {
               <div className="pt-10 flex justify-end">
                 <button 
                   type="button"
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => navigate("/applicant/patent/step2")}
                   className="bg-blue-400 hover:bg-blue-500 text-white px-10 py-3 rounded-xl font-bold transition shadow-md active:scale-95"
                 >
                   Tiếp theo

@@ -12,7 +12,13 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 
 const Step3_Attachments = () => {
   const navigate = useNavigate();
-  const { formData, updateFormData, clearFormData } = useFilingData();
+  // Thêm dấu = {} hoặc kiểm tra null để tránh crash khi Provider chưa kịp load
+  const context = useFilingData();
+  const { formData, updateFormData, clearFormData } = context || { 
+    formData: { attachments: [], claims: [] }, 
+    updateFormData: () => {}, 
+    clearFormData: () => {} 
+  };
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentStep = 3;
@@ -58,8 +64,10 @@ const Step3_Attachments = () => {
       status: "HOAN_TAT"
     };
 
-    // 3. Loại bỏ file cũ cùng loại (nếu có) và thêm file mới
-    const updatedAttachments = [...formData.attachments].filter(a => a.docType !== docType);
+    const updatedAttachments = (formData?.attachments || []).filter(
+      a => a.docType !== docType
+    );
+
     
     const updatePayload = {
       attachments: [...updatedAttachments, newAttachment]
@@ -80,7 +88,7 @@ const Step3_Attachments = () => {
   };
 
   const getFileByDocType = (docType) => {
-    return formData.attachments.find(a => a.docType === docType);
+    return formData?.attachments?.find(a => a.docType === docType) || null;
   };
 
   const formatBytes = (bytes, decimals = 2) => {
@@ -155,6 +163,7 @@ const Step3_Attachments = () => {
                 onFileSelect={handleFileChange}
                 onRemove={removeFile}
                 hint="Mẫu số 01 - Nghị định 65/2023/NĐ-CP"
+                updateFormData={updateFormData} 
               />
             </section>
 
@@ -170,6 +179,7 @@ const Step3_Attachments = () => {
                   totalPages={formData.totalPages}
                   onFileSelect={handleFileChange}
                   onRemove={removeFile}
+                  updateFormData={updateFormData} 
                 />
                 <FileSlot 
                   label="Yêu cầu bảo hộ (Claims)" 
@@ -179,6 +189,7 @@ const Step3_Attachments = () => {
                   fileData={getFileByDocType("YEU_CAU_BAO_HO")}
                   onFileSelect={handleFileChange}
                   onRemove={removeFile}
+                  updateFormData={updateFormData} 
                 />
                 <FileSlot 
                   label="Hình vẽ/Sơ đồ (Drawings)" 
@@ -188,6 +199,7 @@ const Step3_Attachments = () => {
                   fileData={getFileByDocType("HINH_VE")}
                   onFileSelect={handleFileChange}
                   onRemove={removeFile}
+                  updateFormData={updateFormData} 
                 />
               </div>
             </section>
@@ -249,9 +261,12 @@ const Step3_Attachments = () => {
 };
 
 // Component Helper FileSlot - GIỮ NGUYÊN GIAO DIỆN CỦA BẠN
-const FileSlot = ({ label, required, optional, category, docType, fileData, onFileSelect, onRemove, hint, totalPages }) => {
+const FileSlot = ({ 
+  label, required, optional, category, docType,
+  fileData, onFileSelect, onRemove, hint, totalPages,
+  updateFormData
+  }) => {
   const inputRef = useRef(null);
-  const { updateFormData } = useFilingData();
 
   return (
     <div className={`p-6 border rounded-2xl bg-white transition ${fileData ? 'border-green-200 bg-green-50/5' : 'border-gray-100 hover:border-blue-200'}`}>

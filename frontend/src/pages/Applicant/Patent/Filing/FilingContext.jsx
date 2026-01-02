@@ -98,4 +98,18 @@ export const FilingProvider = ({ children }) => {
   );
 };
 
-export const useFilingData = () => useContext(FilingContext);
+export const useFilingData = () => {
+  const context = useContext(FilingContext);
+  
+  // Nếu context bị undefined (do nằm ngoài Provider), trả về object mặc định 
+  // để phép destructure { formData, ... } không bị ném lỗi
+  if (context === undefined) {
+    return { 
+      formData: {}, 
+      updateFormData: () => {}, 
+      clearFormData: () => {} 
+    };
+  }
+  
+  return context;
+};
