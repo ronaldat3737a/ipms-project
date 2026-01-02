@@ -101,85 +101,78 @@ public class PaymentController {
         }
     }
 
-    // =========================================================
-    // 2. IPN – VNPAY GỌI VỀ XÁC NHẬN GIAO DỊCH
-    // =========================================================
-    @GetMapping("/vnpay-ipn")
+    @RequestMapping(
+    value = "/vnpay-ipn",
+    method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity<?> vnpayIPN(HttpServletRequest request) {
-        try {
-            Map<String, String> vnp_Params = new HashMap<>();
-            Enumeration<String> paramNames = request.getParameterNames();
 
-            while (paramNames.hasMoreElements()) {
-                String paramName = paramNames.nextElement();
-                String paramValue = request.getParameter(paramName);
-                if (paramValue != null && !paramValue.isEmpty()) {
-                    vnp_Params.put(paramName, paramValue);
-                }
-            }
+    Map<String, String> vnp_Params = new HashMap<>();
+    request.getParameterMap().forEach((k, v) -> vnp_Params.put(k, v[0]));
+    System.out.println("🔥 IPN PARAMS = " + vnp_Params);
 
-            String vnp_SecureHash = vnp_Params.remove("vnp_SecureHash");
-            vnp_Params.remove("vnp_SecureHashType");
+    String vnp_SecureHash = vnp_Params.remove("vnp_SecureHash");
+    vnp_Params.remove("vnp_SecureHashType");
 
-            List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
-            Collections.sort(fieldNames);
+    List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
+    Collections.sort(fieldNames);
 
-            StringBuilder hashData = new StringBuilder();
-            for (Iterator<String> it = fieldNames.iterator(); it.hasNext();) {
-                String fieldName = it.next();
-                String fieldValue = vnp_Params.get(fieldName);
-                if (fieldValue != null && !fieldValue.isEmpty()) {
-                    hashData.append(fieldName).append('=')
-                            .append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
-                    if (it.hasNext()) hashData.append('&');
-                }
-            }
-
-            String checkHash = VnPayConfig.hmacSHA512(
-                    VnPayConfig.vnp_HashSecret,
-                    hashData.toString()
-            );
-
-            if (!checkHash.equalsIgnoreCase(vnp_SecureHash)) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("RspCode", "97", "Message", "Invalid Checksum"));
-            }
-
-            String vnp_ResponseCode = vnp_Params.get("vnp_ResponseCode");
-            String vnp_TxnRef = vnp_Params.get("vnp_TxnRef");
-            String vnp_TransactionNo = vnp_Params.get("vnp_TransactionNo");
-
-            String appId = vnp_TxnRef.split("_")[0];
-
-            if ("00".equals(vnp_ResponseCode)) {
-                Optional<Application> optionalApp = applicationRepository.findByAppNo(appId);
-
-                if (optionalApp.isPresent()) {
-                    Application application = optionalApp.get();
-
-                    if (application.getStatus() == AppStatus.CHO_NOP_PHI_GD1) {
-                        application.setStatus(AppStatus.DANG_TD_HINH_THUC);
-                        applicationRepository.save(application);
-
-                        ReviewHistory history = new ReviewHistory();
-                        history.setApplication(application);
-                        history.setReviewDate(OffsetDateTime.now());
-                        history.setStatusTo(AppStatus.DANG_TD_HINH_THUC);
-                        history.setNote(
-                                "Thanh toán VNPay thành công. Mã giao dịch: " + vnp_TransactionNo
-                        );
-
-                        reviewHistoryRepository.save(history);
-                    }
-                }
-            }
-
-            return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("RspCode", "99", "Message", "Unknown error"));
+    StringBuilder hashData = new StringBuilder();
+    for (Iterator<String> it = fieldNames.iterator(); it.hasNext();) {
+        String fieldName = it.next();
+        String fieldValue = vnp_Params.get(fieldName);
+        if (fieldValue != null && !fieldValue.isEmpty()) {
+            hashData.append(fieldName).append('=')
+                    .append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
+            if (it.hasNext()) hashData.append('&');
         }
     }
+
+    String checkHash = VnPayConfig.hmacSHA512(
+            VnPayConfig.vnp_HashSecret,
+            hashData.toString()
+    );
+
+    if (!checkHash.equalsIgnoreCase(vnp_SecureHash)) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("RspCode", "97", "Message", "Invalid Checksum"));
+    }
+
+    String vnp_ResponseCode = vnp_Params.get("vnp_ResponseCode");
+String vnp_TxnRef = vnp_Params.get("vnp_TxnRef");
+
+if ("00".equals(vnp_ResponseCode)) {
+
+    // 🔥 TÁCH MÃ ĐƠN GỐC
+    String appNoOnly = vnp_TxnRef.split("_")[0];
+
+    System.out.println("🔍 Đang tra cứu mã đơn: " + appNoOnly);
+
+    Optional<Application> optionalApp =
+            applicationRepository.findByAppNo(appNoOnly);
+
+    System.out.println("✅ APP FOUND = " + optionalApp.isPresent());
+
+    if (optionalApp.isPresent()) {
+        Application application = optionalApp.get();
+
+        if (AppStatus.CHO_NOP_PHI_GD1.equals(application.getStatus())) {
+
+            application.setStatus(AppStatus.DANG_TD_HINH_THUC);
+            applicationRepository.save(application);
+
+            ReviewHistory history = new ReviewHistory();
+            history.setApplication(application);
+            history.setReviewDate(OffsetDateTime.now());
+            history.setStatusTo(AppStatus.DANG_TD_HINH_THUC);
+            history.setNote("Thanh toán VNPay thành công");
+
+            reviewHistoryRepository.save(history);
+        }
+    }
+}
+
+
+    return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
+    }
+
 }
