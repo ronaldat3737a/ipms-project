@@ -5,10 +5,9 @@ import {
   XCircle, ChevronDown, Info, Users, FileText, Layers, History
 } from "lucide-react";
 
-// SỬA LỖI: Cấu hình PDF.js worker để fix lỗi 404
+// SỬA LỖI BUILD VERCEL: Dùng CDN ổn định cho PDF.js worker
 import * as pdfjsLib from "pdfjs-dist";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.min.js`;
 
 const ApplicationReview = () => {
   const navigate = useNavigate();
