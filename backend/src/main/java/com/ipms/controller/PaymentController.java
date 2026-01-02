@@ -35,10 +35,15 @@ public class PaymentController {
             @RequestParam Long amount
     ) {
         try {
-            // Kiểm tra sự tồn tại của đơn trước khi tạo giao dịch
-            Optional<Application> appOpt = applicationRepository.findByAppNo(appNo);
-            if (appOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Mã đơn không hợp lệ hoặc không tồn tại!"));
+            // 1. Kiểm tra sự tồn tại và trạng thái của đơn
+            Application application = applicationRepository.findByAppNo(appNo)
+                    .orElseThrow(() -> new RuntimeException("Mã đơn không hợp lệ hoặc không tồn tại!"));
+
+            // 2. KIỂM TRA TRẠNG THÁI THEO YÊU CẦU
+            if (application.getStatus() != AppStatus.CHO_NOP_PHI_GD1) {
+                return ResponseEntity
+                        .badRequest()
+                        .body(Map.of("message", "Đơn không ở trạng thái chờ nộp phí GD1"));
             }
 
             String vnp_Version = "2.1.0";

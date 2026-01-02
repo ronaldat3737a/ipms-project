@@ -43,21 +43,30 @@ public class PatentController {
     private final PatentService patentService;
 
     // --- 1. CHỨC NĂNG DÀNH CHO NGƯỜI NỘP ĐƠN (APPLICANT) ---
-    @PostMapping(value = "/submit", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
-    public ResponseEntity<Application> submitPatent(
-            @RequestPart("patentData") String patentDataJson, 
-            @RequestPart(value = "files", required = false) MultipartFile[] files
-    ) throws Exception {
-        
+    
+    // ENDPOINT MỚI: BƯỚC 1 - TẠO ĐƠN NHÁP VỚI TRẠNG THÁI "MOI"
+    @PostMapping(value = "/create", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+    public ResponseEntity<Map<String, UUID>> createApplication(
+            @RequestPart("patentData") String patentDataJson,
+            @RequestPart(value = "files", required = false) MultipartFile[] files) throws Exception {
+
         ObjectMapper objectMapper = new ObjectMapper();
         PatentSubmissionDTO dto = objectMapper.readValue(patentDataJson, PatentSubmissionDTO.class);
 
-        // Giả lập UserId (Cần khớp với kiểu dữ liệu trong User Entity của bạn, thường là Long hoặc UUID)
-        Long mockUserId = 1L; 
-        
-        Application savedApp = patentService.submitPatent(dto, mockUserId, files);
-        return ResponseEntity.ok(savedApp);
+        // Giả lập UserId (Cần khớp với kiểu dữ liệu trong User Entity của bạn)
+        Long mockUserId = 1L;
+
+        Application createdApp = patentService.createApplication(dto, mockUserId, files);
+        return ResponseEntity.ok(Map.of("id", createdApp.getId()));
     }
+
+    // ENDPOINT MỚI: BƯỚC 2 - NỘP ĐƠN CHÍNH THỨC
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<Application> submitApplication(@PathVariable UUID id) {
+        Application submittedApp = patentService.submitApplication(id);
+        return ResponseEntity.ok(submittedApp);
+    }
+
 
     // --- 2. CHỨC NĂNG DÀNH CHO THẨM ĐỊNH VIÊN (EXAMINER) ---
     // Đây là phương thức bạn đang thiếu dẫn đến lỗi 404

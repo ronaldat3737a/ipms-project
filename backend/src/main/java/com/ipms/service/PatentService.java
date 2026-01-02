@@ -34,6 +34,7 @@ public class PatentService {
     private String uploadPath;
 
     @Transactional(rollbackFor = Exception.class)
+    @Deprecated
     public Application submitPatent(PatentSubmissionDTO dto, Long userId, MultipartFile[] files) {
         User currentUser = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
@@ -102,6 +103,106 @@ public class PatentService {
 
         return app;
     }
+
+
+    // ======================== FLOW MỚI THEO YÊU CẦU ========================
+
+    @Transactional(rollbackFor = Exception.class)
+    public Application createApplication(PatentSubmissionDTO dto, Long userId, MultipartFile[] files) {
+        User currentUser = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        List<String> ipcList = (dto.getIpcCodes() != null) ? new ArrayList<>(dto.getIpcCodes()) : new ArrayList<>();
+
+        // 1. Tạo đơn với trạng thái MOI và appNo = null
+        Application app = Application.builder()
+                .appType(mapAppType(dto.getAppType()))
+                .title(dto.getTitle())
+                .solutionDetail(dto.getSolutionDetail())
+                .solutionType(mapSolutionType(dto.getSolutionType()))
+                .technicalField(dto.getTechnicalField())
+                .ipcCodes(ipcList)
+                .summary(dto.getSummary())
+                .filingBasis(FilingBasis.TRUC_TUYEN)
+                .user(currentUser)
+                .status(AppStatus.MOI) // Trạng thái khởi tạo là MỚI
+                .appNo(null) // appNo là null ở bước này
+                .build();
+
+        // Lưu đơn chính để lấy ID
+        app = applicationRepository.save(app);
+
+        // 2. Lưu các thông tin liên quan (Chủ đơn, Tác giả, File, Yêu cầu bảo hộ)
+        Applicant owner = Applicant.builder()
+                .application(app)
+                .type("Cá nhân".equals(dto.getOwnerType()) ? ApplicantType.CA_NHAN : ApplicantType.TO_CHUC)
+                .fullName(dto.getOwnerName())
+                .idNumber(dto.getOwnerId())
+                .address(dto.getOwnerAddress())
+                .phone(dto.getOwnerPhone())
+                .email(dto.getOwnerEmail())
+                .repCode(dto.getOwnerRepCode())
+                .build();
+        applicantRepository.save(owner);
+
+        if (dto.getAuthors() != null) {
+            for (int i = 0; i < dto.getAuthors().size(); i++) {
+                AuthorDTO aDto = dto.getAuthors().get(i);
+                Author author = Author.builder()
+                        .application(app)
+                        .fullName(aDto.getFullName())
+                        .nationality(aDto.getNationality())
+                        .idNumber(aDto.getIdNumber())
+                        .orderIndex(i + 1)
+                        .build();
+                authorRepository.save(author);
+            }
+        }
+
+        saveClaims(dto.getClaims(), app);
+
+        if (files != null && files.length > 0) {
+            savePhysicalFiles(files, app, dto.getAttachments());
+        }
+
+        return app;
+    }
+
+    @Transactional
+    public Application submitApplication(UUID applicationId) {
+        Application app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn với ID: " + applicationId));
+
+        // 1. Kiểm tra trạng thái hiện tại phải là MOI
+        if (app.getStatus() != AppStatus.MOI) {
+            throw new IllegalStateException("Chỉ có thể nộp đơn ở trạng thái MỚI.");
+        }
+
+        // 2. Sinh appNo
+        String appNo = generateAppNo(app.getAppType());
+        app.setAppNo(appNo);
+
+        // 3. Chuyển trạng thái sang CHO_NOP_PHI_GD1
+        app.setStatus(AppStatus.CHO_NOP_PHI_GD1);
+
+        // 4. Lưu lại
+        return applicationRepository.save(app);
+    }
+    
+    private String generateAppNo(AppType appType) {
+        String prefix = (appType == AppType.SANG_CHE) ? "SC" : "GPHI";
+        int year = Calendar.getInstance().get(Calendar.YEAR);
+        
+        // Cần phương thức count trong repository, sẽ được thêm ở bước sau
+        long count = applicationRepository.countByAppTypeAndCreatedAtYear(appType, year);
+        
+        String sequence = String.format("%05d", count + 1);
+        
+        return prefix + year + sequence;
+    }
+
+    // =======================================================================
+
 
     private void savePhysicalFiles(MultipartFile[] files, Application app, List<AttachmentDTO> attachmentDtos) {
         try {

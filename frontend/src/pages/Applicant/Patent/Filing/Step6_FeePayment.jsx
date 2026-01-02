@@ -61,34 +61,66 @@ const Step6_FeePayment = () => {
     }).format(amount);
   };
 
-  // --- XỬ LÝ GỌI API VNPAY (Đã sửa URL và Headers cho Ngrok) ---
+  // --- XỬ LÝ GỌI API THEO FLOW MỚI ---
   const handleVNPayPayment = async () => {
     setLoading(true);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    const stage = 1;
+
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-      
-      // Sử dụng ID hồ sơ thực tế hoặc ID tạm
-      const appId = formData?.appNo || "DRAFT-" + Date.now(); 
-      const stage = 1; 
+        // --- BƯỚC 1: TẠO ĐƠN (CREATE APPLICATION) ---
+        console.log("Bước 1: Đang tạo đơn...");
+        const submissionData = new FormData();
+        submissionData.append("patentData", JSON.stringify(formData));
 
-      const response = await axios.get(
-        `${API_BASE_URL}/api/payment/create-payment/${appId}/${stage}`,
-        { 
-          params: { amount: totalAmount },
-          headers: {
-            "ngrok-skip-browser-warning": "69420" // Vượt rào Ngrok
-          }
+        if (formData.files && formData.files.length > 0) {
+            for (const file of formData.files) {
+                submissionData.append("files", file);
+            }
         }
-      );
+        
+        const createResponse = await axios.post(`${API_BASE_URL}/api/patents/create`, submissionData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
 
-      if (response.data && response.data.url) {
-        // Chuyển hướng sang VNPay
-        // Sau khi thanh toán, VNPay sẽ tự gọi về /payment-result (đã cấu hình ở Backend)
-        window.location.href = response.data.url;
-      }
+        const newApplicationId = createResponse.data.id;
+        if (!newApplicationId) {
+            throw new Error("Không nhận được ID của đơn sau khi tạo.");
+        }
+        console.log("=> Bước 1 THÀNH CÔNG. Đơn đã được tạo với ID:", newApplicationId);
+
+        // --- BƯỚC 2: NỘP ĐƠN (SUBMIT APPLICATION) ---
+        console.log("Bước 2: Đang nộp đơn với ID:", newApplicationId);
+        const submitResponse = await axios.post(`${API_BASE_URL}/api/patents/${newApplicationId}/submit`);
+        
+        const submittedApplication = submitResponse.data;
+        if (!submittedApplication || !submittedApplication.appNo) {
+            throw new Error("Không nhận được mã đơn (appNo) sau khi nộp.");
+        }
+        console.log("=> Bước 2 THÀNH CÔNG. Đơn đã được nộp với appNo:", submittedApplication.appNo);
+
+        // --- BƯỚC 3: TẠO LINK THANH TOÁN (CREATE PAYMENT) ---
+        console.log("Bước 3: Đang tạo link thanh toán cho appNo:", submittedApplication.appNo);
+        const paymentResponse = await axios.get(
+            `${API_BASE_URL}/api/payment/create-payment/${submittedApplication.appNo}/${stage}`, {
+                params: { amount: totalAmount },
+                headers: { "ngrok-skip-browser-warning": "69420" }
+            }
+        );
+
+        if (paymentResponse.data && paymentResponse.data.url) {
+            console.log("=> Bước 3 THÀNH CÔNG. Chuyển hướng tới VNPay...");
+            // Dọn dẹp form và chuyển hướng
+            clearFormData();
+            window.location.href = paymentResponse.data.url;
+        } else {
+            throw new Error("Không nhận được URL thanh toán từ VNPay.");
+        }
+
     } catch (error) {
-      console.error("Lỗi thanh toán:", error);
-      alert("Lỗi kết nối: " + (error.response?.data || "Cổng thanh toán đang bảo trì."));
+      console.error("Lỗi trong quá trình nộp đơn và thanh toán:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Đã có lỗi xảy ra. Vui lòng thử lại.";
+      alert(`Lỗi: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

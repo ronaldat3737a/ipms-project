@@ -26,12 +26,11 @@ import java.util.UUID;
 public class Application {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
-    @Generated(GenerationTime.INSERT)
-    @Column(name = "app_no", length = 25, unique = true, insertable = false)
+    @Column(name = "app_no", length = 25, unique = true)
     private String appNo; 
 
     // --- CẬP NHẬT ENUM STATUS ---
