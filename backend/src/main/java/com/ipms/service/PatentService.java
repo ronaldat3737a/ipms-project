@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.persistence.EntityManager;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,6 +29,7 @@ public class PatentService {
     private final ClaimRepository claimRepository;
     private final AttachmentRepository attachmentRepository;
     private final UserRepository userRepository;
+    private final PaymentService paymentService;
     private final EntityManager entityManager; 
 
     @Value("${upload.path:uploads/}")
@@ -183,6 +185,9 @@ public class PatentService {
         if (app.getStatus() != AppStatus.MOI) {
             throw new IllegalStateException("Chỉ có thể nộp đơn ở trạng thái MỚI.");
         }
+        
+        // TẠO PHÍ GIAI ĐOẠN 1 (Sử dụng PaymentService)
+        paymentService.createFeeForStage1(app);
 
         // 2. Sinh appNo
         String appNo = generateAppNo(app.getAppType());

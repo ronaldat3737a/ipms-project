@@ -24,9 +24,8 @@ import java.util.*;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final ApplicationRepository applicationRepository;
-    private final ReviewHistoryRepository reviewHistoryRepository;
-    private final PaymentService paymentService; // Injected PaymentService
+    private final ApplicationRepository applicationRepository; // Keep for createPayment, can be refactored later
+    private final PaymentService paymentService;
 
     // =========================================================
     // NEW ENDPOINT TO GET FEES FOR AN APPLICATION
@@ -127,9 +126,9 @@ public class PaymentController {
             String vnp_SecureHash = vnp_Params.remove("vnp_SecureHash");
             vnp_Params.remove("vnp_SecureHashType");
 
+            // Build hash data
             List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
             Collections.sort(fieldNames);
-
             StringBuilder hashData = new StringBuilder();
             for (Iterator<String> it = fieldNames.iterator(); it.hasNext();) {
                 String fieldName = it.next();
@@ -139,58 +138,29 @@ public class PaymentController {
                     if (it.hasNext()) hashData.append('&');
                 }
             }
-
             String checkHash = VnPayConfig.hmacSHA512(VnPayConfig.vnp_HashSecret, hashData.toString());
 
-            // 1. Kiểm tra chữ ký bảo mật
+            // 1. Validate Checksum
             if (!checkHash.equalsIgnoreCase(vnp_SecureHash)) {
                 return ResponseEntity.badRequest().body(Map.of("RspCode", "97", "Message", "Invalid Checksum"));
             }
 
-            String vnp_ResponseCode = vnp_Params.get("vnp_ResponseCode");
-            String vnp_TxnRef = vnp_Params.get("vnp_TxnRef");
-            String vnp_TransactionNo = vnp_Params.get("vnp_TransactionNo");
+            // 2. Delegate business logic to PaymentService
+            Application processedApplication = paymentService.processVnPayIpn(vnp_Params);
 
-            // 2. Xử lý Logic nghiệp vụ khi thanh toán thành công
-            if ("00".equals(vnp_ResponseCode)) {
-                
-                // 🔥 Tách mã đơn chuyên ngành (Ví dụ: 1-2026-00001)
-                String appNoOnly = vnp_TxnRef.split("_")[0];
-                System.out.println("🔍 Tra cứu AppNo từ DB: " + appNoOnly);
-
-                Optional<Application> optionalApp = applicationRepository.findByAppNo(appNoOnly);
-
-                if (optionalApp.isPresent()) {
-                    Application application = optionalApp.get();
-
-                    // CHỈ CẬP NHẬT NẾU ĐƠN ĐANG CHỜ NỘP PHÍ GD1 (Idempotency)
-                    if (AppStatus.CHO_NOP_PHI_GD1.equals(application.getStatus())) {
-                        
-                        // --- CẬP NHẬT APPLICATION ---
-                        application.setStatus(AppStatus.DANG_TD_HINH_THUC);
-                        application.setUpdatedAt(OffsetDateTime.now());
-                        applicationRepository.save(application);
-
-                        // --- LƯU REVIEW HISTORY ---
-                        ReviewHistory history = new ReviewHistory();
-                        history.setApplication(application);
-                        history.setReviewDate(OffsetDateTime.now());
-                        history.setStatusTo(AppStatus.DANG_TD_HINH_THUC);
-                        history.setNote("Hệ thống: Xác nhận nộp phí GD1 qua VNPay. Mã giao dịch: " + vnp_TransactionNo);
-
-                        reviewHistoryRepository.save(history);
-                        
-                        System.out.println("✅ Cập nhật DB thành công cho đơn: " + appNoOnly);
-                    }
-                } else {
-                    System.err.println("❌ Không tìm thấy mã đơn trong DB: " + appNoOnly);
-                }
+            if (processedApplication == null) {
+                // This could mean payment failed, was already processed, or data was invalid.
+                // The service layer should log the specific reason.
+                // We still return a success response to VNPay to prevent retries for business rule failures.
+                System.err.println("IPN processing did not result in an update. See service logs for details.");
             }
 
+            // 3. Always return success to VNPay to acknowledge receipt
             return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
 
         } catch (Exception e) {
             e.printStackTrace();
+            // Critical error, return 99 to VNPay if possible
             return ResponseEntity.internalServerError().body(Map.of("RspCode", "99", "Message", "Unknown error"));
         }
     }
