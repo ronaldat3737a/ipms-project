@@ -1,6 +1,7 @@
 package com.ipms.service;
 
 import com.ipms.dto.ApplicationFeeDTO;
+import com.ipms.dto.PatentSubmissionDTO;
 import com.ipms.entity.Application;
 import com.ipms.entity.ApplicationFee;
 import com.ipms.entity.ReviewHistory;
@@ -51,11 +52,14 @@ public class PaymentService {
     }
 
     @Transactional
-    public ApplicationFee createFeeForStage1(Application application) {
-        // Fee calculation logic moved from frontend to backend
-        long numIndependentClaims = application.getClaims().stream()
-                .filter(c -> c.getType() == ClaimType.DOK_LAP)
+    public ApplicationFee createFeeForStage1(Application application, PatentSubmissionDTO dto) {
+        // Fee calculation logic now uses the DTO directly to ensure data consistency
+        long numIndependentClaims = 0;
+        if (dto.getClaims() != null) {
+            numIndependentClaims = dto.getClaims().stream()
+                .filter(c -> "Độc lập".equalsIgnoreCase(c.getType()))
                 .count();
+        }
 
         // TODO: The number of pages should be stored on the Application entity itself.
         // Using a placeholder of 0 for now.
