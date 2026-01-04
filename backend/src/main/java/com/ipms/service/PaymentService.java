@@ -6,6 +6,7 @@ import com.ipms.entity.Application;
 import com.ipms.entity.ApplicationFee;
 import com.ipms.entity.ReviewHistory;
 import com.ipms.entity.enums.AppStatus;
+import com.ipms.entity.enums.AppType;
 import com.ipms.entity.enums.ClaimType;
 import com.ipms.entity.enums.FeeStage;
 import com.ipms.entity.enums.PaymentStatus;
@@ -52,34 +53,27 @@ public class PaymentService {
     }
 
     @Transactional
-    public ApplicationFee createFeeForStage1(Application application, PatentSubmissionDTO dto) {
-        // Fee calculation logic now uses the DTO directly to ensure data consistency
-        long numIndependentClaims = 0;
-        if (dto.getClaims() != null) {
-            numIndependentClaims = dto.getClaims().stream()
-                .filter(c -> "Độc lập".equalsIgnoreCase(c.getType()))
+
+    public ApplicationFee createFeeForStage1(Application application) {
+        // 1. Khởi tạo các mức phí cơ bản theo quy định (Ví dụ)
+        BigDecimal feeFiling = new BigDecimal("150000");      // Lệ phí nộp đơn
+        BigDecimal feeExamPerClaim = new BigDecimal("180000"); // Phí thẩm định mỗi điểm độc lập
+
+        // 2. Đếm số lượng điểm bảo hộ Độc lập thực tế từ đơn hàng
+        long numIndependentClaims = application.getClaims().stream()
+                .filter(c -> c.getType() == ClaimType.DOK_LAP)
                 .count();
         }
 
-        // TODO: The number of pages should be stored on the Application entity itself.
-        // Using a placeholder of 0 for now.
-        int numPages = 0; 
-
-        BigDecimal feeFiling = new BigDecimal("150000");
-        BigDecimal feeExamPerClaim = new BigDecimal("180000");
-        BigDecimal feePageExceed = new BigDecimal("8000");
-
+        // 3. Tính tổng tiền: 150k + (Số điểm độc lập * 180k)
         BigDecimal totalExamFee = feeExamPerClaim.multiply(new BigDecimal(numIndependentClaims));
-        
-        int pagesOver = Math.max(0, numPages - 6);
-        BigDecimal totalPageFee = feePageExceed.multiply(new BigDecimal(pagesOver));
+        BigDecimal totalAmount = feeFiling.add(totalExamFee);
 
-        BigDecimal totalAmount = feeFiling.add(totalExamFee).add(totalPageFee);
-
+        // 4. Lưu vào Database bản ghi phí thực tế
         ApplicationFee fee = ApplicationFee.builder()
                 .application(application)
                 .stage(FeeStage.PHI_GD1)
-                .amount(totalAmount)
+                .amount(totalAmount) // Không còn dùng con số gán cứng nào ở đây
                 .status(PaymentStatus.CHUA_THANH_TOAN)
                 .build();
 

@@ -174,7 +174,8 @@ public class PatentService {
         }
 
         // TÍNH VÀ LƯU PHÍ GIAI ĐOẠN 1 NGAY KHI TẠO ĐƠN
-        paymentService.createFeeForStage1(app, dto);
+
+        paymentService.createFeeForStage1(app);
 
         return app;
     }
