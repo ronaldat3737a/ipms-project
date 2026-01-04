@@ -1,11 +1,13 @@
 package com.ipms.controller;
 
 import com.ipms.config.VnPayConfig;
+import com.ipms.dto.ApplicationFeeDTO;
 import com.ipms.entity.Application;
 import com.ipms.entity.ReviewHistory;
 import com.ipms.entity.enums.AppStatus;
 import com.ipms.repository.ApplicationRepository;
 import com.ipms.repository.ReviewHistoryRepository;
+import com.ipms.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +26,17 @@ public class PaymentController {
 
     private final ApplicationRepository applicationRepository;
     private final ReviewHistoryRepository reviewHistoryRepository;
+    private final PaymentService paymentService; // Injected PaymentService
+
+    // =========================================================
+    // NEW ENDPOINT TO GET FEES FOR AN APPLICATION
+    // =========================================================
+    @GetMapping("/fees/{applicationId}")
+    public ResponseEntity<List<ApplicationFeeDTO>> getFeesForApplication(@PathVariable UUID applicationId) {
+        List<ApplicationFeeDTO> fees = paymentService.getFeesForApplication(applicationId);
+        return ResponseEntity.ok(fees);
+    }
+
 
     // =========================================================
     // 1. TẠO LINK THANH TOÁN VNPAY (Sử dụng AppNo "Xịn")
