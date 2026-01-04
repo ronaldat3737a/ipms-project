@@ -1,12 +1,10 @@
 package com.ipms.service;
 
 import com.ipms.dto.ApplicationFeeDTO;
-import com.ipms.dto.PatentSubmissionDTO;
 import com.ipms.entity.Application;
 import com.ipms.entity.ApplicationFee;
 import com.ipms.entity.ReviewHistory;
 import com.ipms.entity.enums.AppStatus;
-import com.ipms.entity.enums.AppType;
 import com.ipms.entity.enums.ClaimType;
 import com.ipms.entity.enums.FeeStage;
 import com.ipms.entity.enums.PaymentStatus;
@@ -45,35 +43,32 @@ public class PaymentService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public BigDecimal getFeeAmountForStage(UUID applicationId, FeeStage stage) {
-        ApplicationFee fee = feeRepository.findByApplicationIdAndStage(applicationId, stage)
-                .orElseThrow(() -> new RuntimeException("Fee record not found for application " + applicationId + " and stage " + stage));
-        return fee.getAmount();
-    }
-
     @Transactional
-
     public ApplicationFee createFeeForStage1(Application application) {
-        // 1. Khởi tạo các mức phí cơ bản theo quy định (Ví dụ)
-        BigDecimal feeFiling = new BigDecimal("150000");      // Lệ phí nộp đơn
-        BigDecimal feeExamPerClaim = new BigDecimal("180000"); // Phí thẩm định mỗi điểm độc lập
-
-        // 2. Đếm số lượng điểm bảo hộ Độc lập thực tế từ đơn hàng
+        // Fee calculation logic moved from frontend to backend
         long numIndependentClaims = application.getClaims().stream()
                 .filter(c -> c.getType() == ClaimType.DOK_LAP)
                 .count();
-        }
 
-        // 3. Tính tổng tiền: 150k + (Số điểm độc lập * 180k)
+        // TODO: The number of pages should be stored on the Application entity itself.
+        // Using a placeholder of 0 for now.
+        int numPages = 0; 
+
+        BigDecimal feeFiling = new BigDecimal("150000");
+        BigDecimal feeExamPerClaim = new BigDecimal("180000");
+        BigDecimal feePageExceed = new BigDecimal("8000");
+
         BigDecimal totalExamFee = feeExamPerClaim.multiply(new BigDecimal(numIndependentClaims));
-        BigDecimal totalAmount = feeFiling.add(totalExamFee);
+        
+        int pagesOver = Math.max(0, numPages - 6);
+        BigDecimal totalPageFee = feePageExceed.multiply(new BigDecimal(pagesOver));
 
-        // 4. Lưu vào Database bản ghi phí thực tế
+        BigDecimal totalAmount = feeFiling.add(totalExamFee).add(totalPageFee);
+
         ApplicationFee fee = ApplicationFee.builder()
                 .application(application)
                 .stage(FeeStage.PHI_GD1)
-                .amount(totalAmount) // Không còn dùng con số gán cứng nào ở đây
+                .amount(totalAmount)
                 .status(PaymentStatus.CHUA_THANH_TOAN)
                 .build();
 
@@ -138,22 +133,6 @@ public class PaymentService {
         if (fee.getStatus() != PaymentStatus.CHUA_THANH_TOAN) {
             System.out.println("IPN: Fee for appNo " + appNo + " has already been processed. Status is: " + fee.getStatus());
             return application; // Return the app but do no more processing
-        }
-
-        // Security Check: Verify that the paid amount matches the stored amount
-        String vnpAmount = vnp_Params.get("vnp_Amount");
-        if (vnpAmount == null) {
-            System.err.println("IPN: vnp_Amount is missing from VNPay parameters for TxnRef: " + vnp_TxnRef);
-            return null;
-        }
-        // VNPay amount is in cents, convert to BigDecimal
-        BigDecimal paidAmount = new BigDecimal(vnpAmount).divide(new BigDecimal("100"));
-        
-        if (paidAmount.compareTo(fee.getAmount()) != 0) {
-            System.err.println("[CRITICAL] IPN: Amount mismatch for TxnRef: " + vnp_TxnRef + 
-                               ". Expected: " + fee.getAmount() + ", Paid: " + paidAmount);
-            // In a real scenario, you might flag this transaction for manual review
-            return null;
         }
 
         // --- UPDATE ApplicationFee ---

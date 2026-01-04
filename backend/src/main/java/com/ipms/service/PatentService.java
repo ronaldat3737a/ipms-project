@@ -173,10 +173,6 @@ public class PatentService {
             savePhysicalFiles(files, app, dto.getAttachments());
         }
 
-        // TÍNH VÀ LƯU PHÍ GIAI ĐOẠN 1 NGAY KHI TẠO ĐƠN
-
-        paymentService.createFeeForStage1(app);
-
         return app;
     }
 
@@ -190,6 +186,9 @@ public class PatentService {
             throw new IllegalStateException("Chỉ có thể nộp đơn ở trạng thái MỚI.");
         }
         
+        // TẠO PHÍ GIAI ĐOẠN 1 (Sử dụng PaymentService)
+        paymentService.createFeeForStage1(app);
+
         // 2. Sinh appNo
         String appNo = generateAppNo(app.getAppType());
         app.setAppNo(appNo);
