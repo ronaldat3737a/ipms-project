@@ -3,19 +3,18 @@ package com.ipms.controller;
 import com.ipms.config.VnPayConfig;
 import com.ipms.dto.ApplicationFeeDTO;
 import com.ipms.entity.Application;
-import com.ipms.entity.ReviewHistory;
 import com.ipms.entity.enums.AppStatus;
+import com.ipms.entity.enums.FeeStage;
 import com.ipms.repository.ApplicationRepository;
-import com.ipms.repository.ReviewHistoryRepository;
 import com.ipms.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.time.OffsetDateTime;
 import java.util.*;
 
 @RestController
@@ -42,36 +41,47 @@ public class PaymentController {
     // =========================================================
     @GetMapping("/create-payment/{appNo}/{stage}")
     public ResponseEntity<?> createPayment(
-            @PathVariable String appNo, // Nhận mã định dạng 1-2026-XXXXX
-            @PathVariable int stage,
-            @RequestParam Long amount
+            @PathVariable String appNo,
+            @PathVariable int stage
     ) {
         try {
-            // 1. Kiểm tra sự tồn tại và trạng thái của đơn
+            // 1. Find the application
             Application application = applicationRepository.findByAppNo(appNo)
                     .orElseThrow(() -> new RuntimeException("Mã đơn không hợp lệ hoặc không tồn tại!"));
 
-            // 2. KIỂM TRA TRẠNG THÁI THEO YÊU CẦU
+            // 2. Check application status
             if (application.getStatus() != AppStatus.CHO_NOP_PHI_GD1) {
                 return ResponseEntity
                         .badRequest()
                         .body(Map.of("message", "Đơn không ở trạng thái chờ nộp phí GD1"));
             }
 
+            // 3. Get the correct fee amount from the database via the service
+            FeeStage feeStage;
+            if (stage == 1) {
+                feeStage = FeeStage.PHI_GD1;
+            } else if (stage == 2) {
+                feeStage = FeeStage.PHI_GD2;
+            } else if (stage == 3) {
+                feeStage = FeeStage.PHI_GD3;
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("message", "Giai đoạn phí không hợp lệ: " + stage));
+            }
+            BigDecimal amount = paymentService.getFeeAmountForStage(application.getId(), feeStage);
+
+            // 4. Build VNPay URL with the correct amount
             String vnp_Version = "2.1.0";
             String vnp_Command = "pay";
-            String vnp_OrderType = "250000";
-            
-            // Cấu trúc TxnRef: [AppNo]_[GiaiĐoạn]_[ThờiGian]
+            String vnp_OrderType = "250000"; // VNPay specific order type
             String vnp_TxnRef = appNo + "_" + stage + "_" + System.currentTimeMillis();
             String vnp_OrderInfo = "Thanh toan le phi SHTT giai doan " + stage + " cho don: " + appNo;
-            String vnp_IpAddr = "127.0.0.1";
+            String vnp_IpAddr = "127.0.0.1"; // In production, get this from the request
 
             Map<String, String> vnp_Params = new HashMap<>();
             vnp_Params.put("vnp_Version", vnp_Version);
             vnp_Params.put("vnp_Command", vnp_Command);
             vnp_Params.put("vnp_TmnCode", VnPayConfig.vnp_TmnCode);
-            vnp_Params.put("vnp_Amount", String.valueOf(amount * 100));
+            vnp_Params.put("vnp_Amount", amount.multiply(new BigDecimal("100")).toBigInteger().toString());
             vnp_Params.put("vnp_CurrCode", "VND");
             vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
             vnp_Params.put("vnp_OrderInfo", vnp_OrderInfo);
@@ -88,27 +98,27 @@ public class PaymentController {
 
             StringBuilder hashData = new StringBuilder();
             StringBuilder query = new StringBuilder();
-
-            for (Iterator<String> it = fieldNames.iterator(); it.hasNext();) {
-                String fieldName = it.next();
+            Iterator<String> itr = fieldNames.iterator();
+            while (itr.hasNext()) {
+                String fieldName = itr.next();
                 String fieldValue = vnp_Params.get(fieldName);
                 if (fieldValue != null && !fieldValue.isEmpty()) {
-                    // ĐỒNG BỘ: Sử dụng UTF_8 để hash không bị sai lệch
                     hashData.append(fieldName).append('=').append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
                     query.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8)).append('=').append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
-                    if (it.hasNext()) {
-                        hashData.append('&');
+                    if (itr.hasNext()) {
                         query.append('&');
+                        hashData.append('&');
                     }
                 }
             }
 
             String vnp_SecureHash = VnPayConfig.hmacSHA512(VnPayConfig.vnp_HashSecret, hashData.toString());
-            String paymentUrl = VnPayConfig.vnp_PayUrl + "?" + query + "&vnp_SecureHash=" + vnp_SecureHash;
+            String paymentUrl = VnPayConfig.vnp_PayUrl + "?" + query.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
 
             return ResponseEntity.ok(Map.of("url", paymentUrl, "appNo", appNo));
 
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().body(Map.of("message", "Lỗi tạo link thanh toán"));
         }
     }

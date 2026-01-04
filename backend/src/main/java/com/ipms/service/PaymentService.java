@@ -43,6 +43,13 @@ public class PaymentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public BigDecimal getFeeAmountForStage(UUID applicationId, FeeStage stage) {
+        ApplicationFee fee = feeRepository.findByApplicationIdAndStage(applicationId, stage)
+                .orElseThrow(() -> new RuntimeException("Fee record not found for application " + applicationId + " and stage " + stage));
+        return fee.getAmount();
+    }
+
     @Transactional
     public ApplicationFee createFeeForStage1(Application application) {
         // Fee calculation logic moved from frontend to backend
@@ -133,6 +140,22 @@ public class PaymentService {
         if (fee.getStatus() != PaymentStatus.CHUA_THANH_TOAN) {
             System.out.println("IPN: Fee for appNo " + appNo + " has already been processed. Status is: " + fee.getStatus());
             return application; // Return the app but do no more processing
+        }
+
+        // Security Check: Verify that the paid amount matches the stored amount
+        String vnpAmount = vnp_Params.get("vnp_Amount");
+        if (vnpAmount == null) {
+            System.err.println("IPN: vnp_Amount is missing from VNPay parameters for TxnRef: " + vnp_TxnRef);
+            return null;
+        }
+        // VNPay amount is in cents, convert to BigDecimal
+        BigDecimal paidAmount = new BigDecimal(vnpAmount).divide(new BigDecimal("100"));
+        
+        if (paidAmount.compareTo(fee.getAmount()) != 0) {
+            System.err.println("[CRITICAL] IPN: Amount mismatch for TxnRef: " + vnp_TxnRef + 
+                               ". Expected: " + fee.getAmount() + ", Paid: " + paidAmount);
+            // In a real scenario, you might flag this transaction for manual review
+            return null;
         }
 
         // --- UPDATE ApplicationFee ---
