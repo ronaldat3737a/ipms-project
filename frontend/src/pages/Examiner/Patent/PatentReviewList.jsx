@@ -39,21 +39,19 @@ const PatentReviewList = () => {
   const matchesTab = () => {
     switch (activeTab) {
       case "hinh-thuc":
-        // Hiển thị đơn mới, đang thẩm định hình thức hoặc đã bị từ chối ở bước này
-        return ["MOI", "DANG_TD_HINH_THUC", "CHO_SUA_DOI_HINH_THUC", "TU_CHOI_DON"].includes(status);
-      
-      case "phi-nd":
-        return status === "CHO_NOP_LE_PHI";
-      
+        return ["MOI", "DANG_TD_HINH_THUC"].includes(status);
+      case "cho-nop-phi":
+        return ["CHO_NOP_PHI_GD1", "CHO_NOP_PHI_GD2", "CHO_NOP_PHI_GD3"].includes(status);
+      case "sua-doi-hinh-thuc":
+        return status === "CHO_SUA_DOI_HINH_THUC";
       case "noi-dung":
-        // Hiển thị đơn đang thẩm định nội dung hoặc bị từ chối ở bước nội dung
-        // (Lưu ý: Nếu quy trình của bạn tách biệt TU_CHOI_HINH_THUC và TU_CHOI_NOI_DUNG thì tốt hơn, 
-        // hiện tại tôi để TU_CHOI_DON xuất hiện ở cả 2 tab để không bị sót đơn)
-        return ["DANG_TD_NOI_DUNG", "CHO_SUA_DOI_NOI_DUNG", "TU_CHOI_DON"].includes(status);
-      
+        return ["DANG_TD_NOI_DUNG"].includes(status);
+      case "sua-doi-noi-dung":
+        return status === "CHO_SUA_DOI_NOI_DUNG";
+      case "da-tu-choi":
+        return status === "TU_CHOI_DON";
       case "cap-bang":
         return status === "DA_CAP_VAN_BANG";
-        
       default:
         return true;
     }
@@ -67,6 +65,28 @@ const PatentReviewList = () => {
 
   return matchesTab() && matchesSearch;
 }) : [];
+
+  const renderStatusBadge = (status) => {
+    let colorClass = "bg-blue-100 text-blue-600";
+    let statusText = status;
+
+    if (status.startsWith("CHO_NOP_PHI")) {
+      colorClass = "bg-sky-100 text-sky-600";
+      statusText = "Chờ nộp phí";
+    } else if (status.startsWith("CHO_SUA_DOI")) {
+      colorClass = "bg-amber-100 text-amber-600";
+    } else if (status === "TU_CHOI_DON") {
+      colorClass = "bg-red-100 text-red-600";
+    } else if (["MOI", "DANG_TD_HINH_THUC", "DANG_TD_NOI_DUNG"].includes(status)) {
+      colorClass = "bg-orange-100 text-orange-600";
+    }
+
+    return (
+      <span className={`px-3 py-1 rounded-full text-[10px] font-black ${colorClass}`}>
+        {statusText}
+      </span>
+    );
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
@@ -116,8 +136,11 @@ const PatentReviewList = () => {
           {/* TAB BAR */}
           <div className="flex bg-gray-200/50 p-1 rounded-lg w-full">
             <TabItem label="Thẩm định Hình thức" active={activeTab === "hinh-thuc"} onClick={() => setActiveTab("hinh-thuc")} />
-            <TabItem label="Chờ phí Nội dung" active={activeTab === "phi-nd"} onClick={() => setActiveTab("phi-nd")} />
+            <TabItem label="Chờ nộp phí" active={activeTab === "cho-nop-phi"} onClick={() => setActiveTab("cho-nop-phi")} />
+            <TabItem label="Sửa đổi Hình thức" active={activeTab === "sua-doi-hinh-thuc"} onClick={() => setActiveTab("sua-doi-hinh-thuc")} />
             <TabItem label="Thẩm định Nội dung" active={activeTab === "noi-dung"} onClick={() => setActiveTab("noi-dung")} />
+            <TabItem label="Sửa đổi Nội dung" active={activeTab === "sua-doi-noi-dung"} onClick={() => setActiveTab("sua-doi-noi-dung")} />
+            <TabItem label="Đã từ chối" active={activeTab === "da-tu-choi"} onClick={() => setActiveTab("da-tu-choi")} />
             <TabItem label="Cấp văn bằng" active={activeTab === "cap-bang"} onClick={() => setActiveTab("cap-bang")} />
           </div>
 
@@ -162,37 +185,24 @@ const PatentReviewList = () => {
       {filteredData.length > 0 ? (
         filteredData.map((item) => (
           <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
-            {/* 1. Hiển thị mã đơn appNo từ DB */}
             <td 
               className="px-8 py-5 font-bold text-blue-600 underline text-sm cursor-pointer hover:text-blue-800"
               onClick={() => navigate(`/examiner/review/sang-che/${item.id}`)}
             >
               {item.appNo || "Đang cấp mã..."}
             </td>
-
-            {/* 2. Hiển thị trạng thái với màu sắc Enum chuẩn */}
             <td className="px-8 py-5 text-sm font-black">
-              <span className={`px-3 py-1 rounded-full text-[10px] 
-                ${item.status === 'TU_CHOI_DON' ? 'bg-red-100 text-red-600' : 
-                  item.status === 'MOI' ? 'bg-orange-100 text-orange-600' : 
-                  'bg-blue-100 text-blue-600'}`}>
-                {item.status}
-              </span>
+              {renderStatusBadge(item.status)}
             </td>
-
-            {/* 3. Hiển thị ngày nộp đơn (createdAt) theo định dạng Việt Nam */}
             <td className="px-8 py-5 text-sm text-slate-500 font-medium">
               {item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : "N/A"}
             </td>
-
-            {/* 4. Hiển thị Tên người nộp lấy từ quan hệ Applicant */}
             <td className="px-8 py-5 text-sm text-slate-700 font-medium">
               {item.applicant?.fullName || "Chưa cập nhật"}
             </td>
           </tr>
         ))
       ) : (
-        /* Hiển thị khi mảng rỗng hoặc đang trong quá trình tải */
         <tr>
           <td colSpan="4" className="px-8 py-10 text-center text-slate-400 italic text-sm">
             {loading ? "Vui lòng đợi hệ thống kết nối..." : "Không tìm thấy hồ sơ nào trong mục này."}
