@@ -31,39 +31,42 @@ public class PaymentService {
     private final ApplicationRepository applicationRepository;
     private final ReviewHistoryRepository reviewHistoryRepository;
 
+    /* =====================================================
+     * GET FEES FOR APPLICATION
+     * ===================================================== */
     @Transactional(readOnly = true)
     public List<ApplicationFeeDTO> getFeesForApplication(UUID applicationId) {
         if (!applicationRepository.existsById(applicationId)) {
-            // In a real application, you'd use a custom exception
-            throw new RuntimeException("Application not found with ID: " + applicationId);
+            throw new RuntimeException("Application not found: " + applicationId);
         }
 
-        return feeRepository.findByApplicationId(applicationId).stream()
+        return feeRepository.findByApplication_Id(applicationId)
+                .stream()
                 .map(ApplicationFeeDTO::new)
                 .collect(Collectors.toList());
     }
 
+    /* =====================================================
+     * CREATE FEE FOR STAGE 1 (BACKEND CALCULATES)
+     * ===================================================== */
     @Transactional
     public ApplicationFee createFeeForStage1(Application application) {
-        // Fee calculation logic moved from frontend to backend
-        long numIndependentClaims = application.getClaims().stream()
+
+        long independentClaims = application.getClaims()
+                .stream()
                 .filter(c -> c.getType() == ClaimType.DOK_LAP)
                 .count();
 
-        // TODO: The number of pages should be stored on the Application entity itself.
-        // Using a placeholder of 0 for now.
-        int numPages = 0; 
+        int numPages = 0; // TODO: move to Application entity later
 
-        BigDecimal feeFiling = new BigDecimal("150000");
-        BigDecimal feeExamPerClaim = new BigDecimal("180000");
-        BigDecimal feePageExceed = new BigDecimal("8000");
+        BigDecimal filingFee = BigDecimal.valueOf(150_000);
+        BigDecimal examFeePerClaim = BigDecimal.valueOf(180_000);
+        BigDecimal pageExceedFee = BigDecimal.valueOf(8_000);
 
-        BigDecimal totalExamFee = feeExamPerClaim.multiply(new BigDecimal(numIndependentClaims));
-        
-        int pagesOver = Math.max(0, numPages - 6);
-        BigDecimal totalPageFee = feePageExceed.multiply(new BigDecimal(pagesOver));
+        BigDecimal examFee = examFeePerClaim.multiply(BigDecimal.valueOf(independentClaims));
+        BigDecimal pageFee = pageExceedFee.multiply(BigDecimal.valueOf(Math.max(0, numPages - 6)));
 
-        BigDecimal totalAmount = feeFiling.add(totalExamFee).add(totalPageFee);
+        BigDecimal totalAmount = filingFee.add(examFee).add(pageFee);
 
         ApplicationFee fee = ApplicationFee.builder()
                 .application(application)
@@ -74,88 +77,90 @@ public class PaymentService {
 
         return feeRepository.save(fee);
     }
-    
+
+    /* =====================================================
+     * VNPay IPN PROCESSING (CORE LOGIC)
+     * ===================================================== */
     @Transactional
     public Application processVnPayIpn(Map<String, String> vnp_Params) {
-        String vnp_ResponseCode = vnp_Params.get("vnp_ResponseCode");
-        String vnp_TxnRef = vnp_Params.get("vnp_TxnRef");
 
-        // Proceed only if payment was successful
-        if (!"00".equals(vnp_ResponseCode)) {
-            System.err.println("IPN: Payment was not successful. Response code: " + vnp_ResponseCode);
+        /* ---------- 1. CHECK PAYMENT RESULT ---------- */
+        if (!"00".equals(vnp_Params.get("vnp_ResponseCode"))) {
+            System.err.println("IPN failed: " + vnp_Params.get("vnp_ResponseCode"));
             return null;
         }
 
-        // Extract info from TxnRef: [AppNo]_[Stage]_[Timestamp]
-        String[] txnRefParts = vnp_TxnRef.split("_");
-        if (txnRefParts.length < 2) {
-            System.err.println("IPN: Invalid vnp_TxnRef format: " + vnp_TxnRef);
+        /* ---------- 2. PARSE TxnRef ---------- */
+        // Format: [AppNo]_[Stage]_[Timestamp]
+        String txnRef = vnp_Params.get("vnp_TxnRef");
+        String[] parts = txnRef.split("_");
+
+        if (parts.length < 2) {
+            System.err.println("Invalid TxnRef: " + txnRef);
             return null;
         }
 
-        String appNo = txnRefParts[0];
-        // The stage from VNPay is a string, needs to be converted to our enum
-        // We assume stage '1' corresponds to 'PHI_GD1'
+        String appNo = parts[0];
         FeeStage feeStage;
-        try {
-            int stageNum = Integer.parseInt(txnRefParts[1]);
-            if (stageNum == 1) {
-                feeStage = FeeStage.PHI_GD1;
-            } else {
-                // Handle other stages if necessary in the future
-                System.err.println("IPN: Unsupported fee stage: " + stageNum);
-                return null;
-            }
-        } catch (NumberFormatException e) {
-            System.err.println("IPN: Invalid stage number in vnp_TxnRef: " + txnRefParts[1]);
+
+        if ("1".equals(parts[1])) {
+            feeStage = FeeStage.PHI_GD1;
+        } else {
+            System.err.println("Unsupported stage: " + parts[1]);
             return null;
         }
 
-        Optional<Application> optionalApp = applicationRepository.findByAppNo(appNo);
-        if (optionalApp.isEmpty()) {
-            System.err.println("IPN: Application not found with appNo: " + appNo);
-            return null;
-        }
-        
-        Application application = optionalApp.get();
+        /* ---------- 3. FIND APPLICATION ---------- */
+        Application application = applicationRepository.findByAppNo(appNo)
+                .orElseThrow(() -> new RuntimeException("Application not found: " + appNo));
 
-        // Find the specific fee record
-        Optional<ApplicationFee> optionalFee = feeRepository.findByApplicationIdAndStage(application.getId(), feeStage);
+        /* ---------- 4. FIND FEE ---------- */
+        ApplicationFee fee = feeRepository
+                .findByApplication_IdAndStage(application.getId(), feeStage)
+                .orElseThrow(() ->
+                        new RuntimeException("Fee not found for appNo " + appNo + " stage " + feeStage)
+                );
 
-        if (optionalFee.isEmpty()) {
-            System.err.println("IPN: ApplicationFee not found for appNo " + appNo + " and stage " + feeStage);
-            return null;
-        }
-
-        ApplicationFee fee = optionalFee.get();
-
-        // Idempotency check: Only process if the fee is currently unpaid
-        if (fee.getStatus() != PaymentStatus.CHUA_THANH_TOAN) {
-            System.out.println("IPN: Fee for appNo " + appNo + " has already been processed. Status is: " + fee.getStatus());
-            return application; // Return the app but do no more processing
+        /* ---------- 5. IDEMPOTENCY ---------- */
+        if (fee.getStatus() == PaymentStatus.DA_THANH_TOAN) {
+            System.out.println("IPN already processed for " + txnRef);
+            return application;
         }
 
-        // --- UPDATE ApplicationFee ---
+        /* ---------- 6. AMOUNT FROM VNPAY (SOURCE OF TRUTH) ---------- */
+        BigDecimal paidAmount = new BigDecimal(vnp_Params.get("vnp_Amount"))
+                .divide(BigDecimal.valueOf(100));
+
+        /* ---------- 7. VALIDATE AMOUNT ---------- */
+        if (fee.getAmount() == null || fee.getAmount().compareTo(paidAmount) != 0) {
+            System.out.println("Correcting fee amount from "
+                    + fee.getAmount() + " to " + paidAmount);
+            fee.setAmount(paidAmount);
+        }
+
+        /* ---------- 8. UPDATE FEE ---------- */
         fee.setStatus(PaymentStatus.DA_THANH_TOAN);
         fee.setTransactionId(vnp_Params.get("vnp_TransactionNo"));
-        fee.setPaidAt(OffsetDateTime.now()); // Or parse from vnp_Params if available and reliable
+        fee.setPaidAt(OffsetDateTime.now());
         feeRepository.save(fee);
 
-        // --- UPDATE Application ---
+        /* ---------- 9. UPDATE APPLICATION ---------- */
         application.setStatus(AppStatus.DANG_TD_HINH_THUC);
         application.setUpdatedAt(OffsetDateTime.now());
         applicationRepository.save(application);
 
-        // --- CREATE ReviewHistory ---
+        /* ---------- 10. REVIEW HISTORY ---------- */
         ReviewHistory history = new ReviewHistory();
         history.setApplication(application);
         history.setReviewDate(OffsetDateTime.now());
         history.setStatusTo(AppStatus.DANG_TD_HINH_THUC);
-        history.setNote("Hệ thống: Xác nhận nộp phí " + feeStage.name() + " qua VNPay. Mã giao dịch: " + fee.getTransactionId());
+        history.setNote(
+                "Xác nhận nộp phí " + feeStage +
+                " qua VNPay. GD: " + fee.getTransactionId()
+        );
         reviewHistoryRepository.save(history);
-        
-        System.out.println("IPN: Successfully processed payment for appNo: " + appNo + " for stage: " + feeStage.name());
 
+        System.out.println("IPN SUCCESS: " + appNo + " - " + paidAmount);
         return application;
     }
 }

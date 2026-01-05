@@ -11,6 +11,9 @@ import java.util.UUID;
 
 @Repository
 public interface ApplicationFeeRepository extends JpaRepository<ApplicationFee, UUID> {
-    List<ApplicationFee> findByApplicationId(UUID applicationId);
-    Optional<ApplicationFee> findByApplicationIdAndStage(UUID applicationId, FeeStage stage);
+
+    List<ApplicationFee> findByApplication_Id(UUID applicationId);
+
+    Optional<ApplicationFee> findByApplication_IdAndStage(UUID applicationId, FeeStage stage);
 }
+
