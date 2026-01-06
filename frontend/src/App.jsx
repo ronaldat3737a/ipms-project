@@ -30,6 +30,9 @@ import AcceptConfirmation from "./pages/Examiner/Patent/AcceptConfirmation";
 import RejectConfirmation from "./pages/Examiner/Patent/RejectConfirmation";
 import CorrectionRequest from "./pages/Examiner/Patent/CorrectionRequest";
 
+import PatentDetail from "./pages/Applicant/Patent/PatentDetail";
+import Phase2Payment from "./pages/Applicant/Patent/Phase2Payment"; // Đổi thành Phase2Payment
+
 function App() {
   return (
     <Router>
@@ -38,6 +41,22 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
+        {/* --- QUY TRÌNH NỘP ĐƠN (NESTED ROUTES) --- */}
+        <Route path="/applicant/patent/*" element={
+            <FilingProvider>
+              <Routes>
+                <Route path="step1" element={<Step1_GeneralInfo />} />
+                <Route path="step2" element={<Step2_OwnerAuthor />} />
+                <Route path="step3" element={<Step3_Attachments />} />
+                <Route path="step4" element={<Step4_Claims />} />
+                <Route path="step5" element={<Step5_Submission />} />
+                <Route path="step6" element={<Step6_FeePayment />} />
+                {/* Giữ payment-result ở đây nếu bạn muốn điều hướng nội bộ từ bước 6 sang (không qua VNPay) */}
+                <Route path="payment-result" element={<SuccessPage />} />
+              </Routes>
+            </FilingProvider>
+        } />
 
         {/* --- ĐÓN KẾT QUẢ VNPAY (QUAN TRỌNG NHẤT - PHẢI Ở ĐÂY) --- */}
         {/* Link VNPay gọi về là /payment-result nên Route này phải nằm ở cấp cao nhất */}
@@ -57,21 +76,9 @@ function App() {
         <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
         <Route path="/applicant/patent" element={<PatentList />} />
 
-        {/* --- QUY TRÌNH NỘP ĐƠN (NESTED ROUTES) --- */}
-        <Route path="/applicant/patent/*" element={
-            <FilingProvider>
-              <Routes>
-                <Route path="step1" element={<Step1_GeneralInfo />} />
-                <Route path="step2" element={<Step2_OwnerAuthor />} />
-                <Route path="step3" element={<Step3_Attachments />} />
-                <Route path="step4" element={<Step4_Claims />} />
-                <Route path="step5" element={<Step5_Submission />} />
-                <Route path="step6" element={<Step6_FeePayment />} />
-                {/* Giữ payment-result ở đây nếu bạn muốn điều hướng nội bộ từ bước 6 sang (không qua VNPay) */}
-                <Route path="payment-result" element={<SuccessPage />} />
-              </Routes>
-            </FilingProvider>
-        } />
+        <Route path="/applicant/patent/view/:id" element={<PatentDetail />} />
+        <Route path="/applicant/payment/phase2/:id" element={<Phase2Payment />} />
+
       </Routes>
     </Router>
   );

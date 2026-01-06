@@ -1,71 +1,89 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Search,
-  Bell,
-  Plus,
-  Eye,
-  Edit3,
-  CreditCard,
-  ChevronLeft,
-  ChevronRight,
-  LayoutDashboard,
-  FileText,
-  Bookmark,
-  PenTool,
-  FileStack,
-  LogOut,
+  Search, Bell, Plus, Eye, Edit3, CreditCard,
+  ChevronLeft, ChevronRight, LayoutDashboard,
+  FileText, Bookmark, PenTool, FileStack, LogOut,
+  AlertCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const PatentList = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("Sáng chế");
+  
+  // --- STATES ---
+  const [patents, setPatents] = useState([]); // Dữ liệu gốc từ DB
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // States cho Filters
+  const [typeFilter, setTypeFilter] = useState("Tất cả");
+  const [statusFilter, setStatusFilter] = useState("Tất cả");
 
-  // Dữ liệu mẫu dựa trên ảnh image_c8b3aa.png
-  const patentData = [
-    {
-      id: "VN/2023/000001",
-      type: "GPHI",
-      name: "Hệ thống quản lý năng lượng thông minh cho tòa nhà",
-      date: "15/03/2023",
-      status: "Đang TĐ Nội dung",
-      color: "bg-blue-50 text-blue-600 border-blue-100",
-    },
-    {
-      id: "VN/2023/000002",
-      type: "Sáng chế",
-      name: "Phương pháp xử lý nước thải công nghiệp hiệu quả cao",
-      date: "01/04/2023",
-      status: "Đang TĐ Hình thức",
-      color: "bg-blue-50 text-blue-600 border-blue-100",
-    },
-    {
-      id: "VN/2023/000003",
-      type: "Sáng chế",
-      name: "Thiết bị bay không người lái tự động thu thập dữ liệu nông nghiệp",
-      date: "20/05/2023",
-      status: "Chờ sửa đổi",
-      color: "bg-orange-50 text-orange-600 border-orange-100",
-      warning: true,
-    },
-    {
-      id: "VN/2022/000123",
-      type: "GPHI",
-      name: "Cơ chế bảo mật dữ liệu blockchain mới cho giao dịch tài chính",
-      date: "10/11/2022",
-      status: "Đã cấp văn bằng",
-      color: "bg-green-50 text-green-600 border-green-100",
-    },
-    {
-      id: "VN/2024/000004",
-      type: "Sáng chế",
-      name: "Ứng dụng di động hỗ trợ học ngoại ngữ cá nhân hóa",
-      date: "05/01/2024",
-      status: "Chờ nộp lệ phí",
-      color: "bg-gray-50 text-gray-600 border-gray-100",
-      fee: true,
-    },
-  ];
+  // --- CẬP NHẬT ÁNH XẠ TRẠNG THÁI (GĐ 2 & GĐ 3) ---
+  const getStatusUI = (status) => {
+    switch (status) {
+      case "MOI":
+        return { label: "Mới tạo", color: "bg-gray-100 text-gray-600 border-gray-200" };
+      case "DANG_TD_HINH_THUC":
+        return { label: "Đang TĐ Hình thức", color: "bg-blue-50 text-blue-600 border-blue-100" };
+      
+      // Đổi sang Giai đoạn 2
+      case "CHO_NOP_PHI_GD2": 
+        return { label: "Chờ nộp lệ phí GĐ 2", color: "bg-purple-50 text-purple-600 border-purple-100", fee: true };
+      
+      case "DANG_TD_NOI_DUNG":
+        return { label: "Đang TĐ Nội dung", color: "bg-indigo-50 text-indigo-600 border-indigo-100" };
+      
+      // Đổi sang Giai đoạn 3 (Trước khi cấp bằng)
+      case "CHO_NOP_PHI_GD3":
+        return { label: "Chờ nộp lệ phí GĐ 3", color: "bg-pink-50 text-pink-600 border-pink-100", fee: true };
+      
+      case "DA_CAP_VAN_BANG":
+        return { label: "Đã cấp văn bằng", color: "bg-green-50 text-green-600 border-green-100" };
+      default:
+        return { label: "Đang xử lý", color: "bg-gray-50 text-gray-500 border-gray-100" };
+    }
+  };
+
+  // --- SỬA LOGIC FETCH DỮ LIỆU ---
+  useEffect(() => {
+    const fetchPatents = async () => {
+      try {
+        setLoading(true);
+        // Lưu ý: Đảm bảo Backend đang chạy tại port 8080
+        const response = await fetch("http://localhost:8080/api/patents/all");
+        
+        if (!response.ok) {
+           throw new Error(`Lỗi Server: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Kiểm tra nếu data là mảng thì mới set
+        if (Array.isArray(data)) {
+          setPatents(data);
+        } else {
+          console.error("Dữ liệu trả về không phải mảng:", data);
+          setPatents([]);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Không thể kết nối đến máy chủ. Hãy kiểm tra Backend và CORS.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPatents();
+  }, []);
+
+  // --- LOGIC LỌC DỮ LIỆU ---
+  const filteredPatents = patents.filter((item) => {
+    const matchType = typeFilter === "Tất cả" || item.appType === typeFilter;
+    const matchStatus = statusFilter === "Tất cả" || getStatusUI(item.status).label === statusFilter;
+    return matchType && matchStatus;
+  });
+
+  if (loading) return <div className="flex h-screen items-center justify-center">Đang tải dữ liệu...</div>;
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
@@ -73,21 +91,13 @@ const PatentList = () => {
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0">
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-            <div className="w-3 h-3 border-2 border-white rotate-45"></div>
+             <div className="w-3 h-3 border-2 border-white rotate-45"></div>
           </div>
           <span className="text-xl font-bold text-blue-600">IP Hub</span>
         </div>
         <nav className="flex-grow px-4 space-y-2">
-          <NavItem
-            onClick={() => navigate("/applicant-dashboard")}
-            icon={<LayoutDashboard size={20} />}
-            label="Dashboard"
-          />
-          <NavItem
-            icon={<FileText size={20} />}
-            label="Sáng chế/ GPHI"
-            active
-          />
+          <NavItem onClick={() => navigate("/applicant-dashboard")} icon={<LayoutDashboard size={20} />} label="Dashboard" />
+          <NavItem icon={<FileText size={20} />} label="Sáng chế/ GPHI" active />
           <NavItem icon={<Bookmark size={20} />} label="Nhãn hiệu" />
           <NavItem icon={<PenTool size={20} />} label="Kiểu dáng CN" />
           <NavItem icon={<FileStack size={20} />} label="Hồ sơ của tôi" />
@@ -102,12 +112,11 @@ const PatentList = () => {
 
       {/* --- MAIN CONTENT --- */}
       <main className="flex-grow flex flex-col min-w-0">
-        {/* Header */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8">
           <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
             <span>Sáng chế</span>
-            <button
-              onClick={() => navigate("/applicant/patent/step1")} // Đường dẫn mới khớp với App.jsx
+            <button 
+              onClick={() => navigate("/applicant/patent/step1")}
               className="bg-blue-500 text-white px-4 py-1.5 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-600 transition ml-4"
             >
               <Plus size={16} /> Nộp đơn mới
@@ -118,153 +127,100 @@ const PatentList = () => {
             <div className="flex items-center gap-3 border-l pl-6 border-gray-100">
               <div className="text-right">
                 <p className="text-sm font-bold text-gray-800">Trần Văn An</p>
-                <p className="text-xs text-gray-400 font-medium">
-                  an.tran@example.com
-                </p>
+                <p className="text-xs text-gray-400 font-medium">an.tran@example.com</p>
               </div>
-              <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                alt="Avatar"
-                className="w-9 h-9 rounded-full border"
-              />
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" className="w-9 h-9 rounded-full border" />
             </div>
           </div>
         </header>
 
-        {/* Content Body */}
         <div className="p-8 space-y-6 overflow-y-auto">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Đơn Sáng chế/GPHI của tôi
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-800">Đơn Sáng chế/GPHI của tôi</h1>
 
           {/* Filters Area */}
-          <div className="space-y-4">
+          <div className="space-y-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-4">
-              <span className="text-sm font-bold text-gray-400 w-24 uppercase">
-                Loại:
-              </span>
+              <span className="text-sm font-bold text-gray-400 w-24 uppercase">Loại:</span>
               <div className="flex gap-2">
-                <FilterButton label="Tất cả" active />
-                <FilterButton label="Sáng chế" />
-                <FilterButton label="Giải pháp hữu ích" />
+                {["Tất cả", "Sáng chế", "Giải pháp hữu ích"].map(t => (
+                  <FilterButton key={t} label={t} active={typeFilter === t} onClick={() => setTypeFilter(t)} />
+                ))}
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <span className="text-sm font-bold text-gray-400 w-24 uppercase mt-2">
-                Trạng thái:
-              </span>
+              <span className="text-sm font-bold text-gray-400 w-24 uppercase mt-2">Trạng thái:</span>
               <div className="flex flex-wrap gap-2 flex-1">
-                <FilterButton label="Tất cả" active />
-                <FilterButton label="Mới" />
-                <FilterButton label="Đang TĐ Hình thức" />
-                <FilterButton label="Chờ sửa đổi hình thức" />
-                <FilterButton label="Đang TĐ Nội dung" />
-                <FilterButton label="Chờ nộp lệ phí" />
-                <FilterButton label="Chờ sửa đổi nội dung" />
-                <FilterButton label="Đã cấp văn bằng/ từ chối" />
-                <FilterButton label="Đã cấp văn bằng" />
-                <FilterButton label="Từ chối đơn" />
+                {["Tất cả", "Mới tạo", "Đang TĐ Hình thức", "Chờ nộp lệ phí GĐ 2", "Đang TĐ Nội dung", "Chờ nộp lệ phí GĐ 3", "Đã cấp văn bằng"].map(s => (
+                  <FilterButton key={s} label={s} active={statusFilter === s} onClick={() => setStatusFilter(s)} />
+                ))}
               </div>
             </div>
           </div>
 
           {/* Table Area */}
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  <th className="px-6 py-4 w-10">
-                    <input
-                      type="checkbox"
-                      className="rounded border-gray-300"
-                    />
-                  </th>
-                  <th className="px-6 py-4">Mã đơn</th>
-                  <th className="px-6 py-4 text-center">Loại</th>
-                  <th className="px-6 py-4">Tên sáng chế</th>
-                  <th className="px-6 py-4">Ngày nộp</th>
-                  <th className="px-6 py-4">Trạng thái</th>
-                  <th className="px-6 py-4 text-center">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {patentData.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50 transition group">
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                      />
-                    </td>
-                    <td className="px-6 py-4 text-sm font-bold text-blue-500 cursor-pointer hover:underline">
-                      {item.id}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={`text-[10px] font-black ${
-                          item.type === "GPHI"
-                            ? "text-red-400"
-                            : "text-green-400"
-                        }`}
-                      >
-                        {item.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-700 max-w-xs truncate">
-                      {item.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 font-medium">
-                      {item.date}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 w-fit ${item.color}`}
-                      >
-                        {item.warning && (
-                          <span className="w-1 h-1 bg-orange-500 rounded-full animate-pulse"></span>
-                        )}
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-3 text-gray-400">
-                        <Eye
-                          size={16}
-                          className="cursor-pointer hover:text-blue-500"
-                        />
-                        {item.warning && (
-                          <Edit3
-                            size={16}
-                            className="cursor-pointer hover:text-orange-500"
-                          />
-                        )}
-                        {item.fee && (
-                          <CreditCard
-                            size={16}
-                            className="cursor-pointer hover:text-gray-700"
-                          />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Pagination */}
-            <div className="px-6 py-4 bg-white border-t border-gray-100 flex items-center justify-end gap-4">
-              <div className="flex items-center gap-1 border rounded-lg p-1">
-                <button className="p-1 hover:bg-gray-100 rounded text-gray-400">
-                  <ChevronLeft size={18} />
-                </button>
-                <span className="text-xs font-medium px-4 text-gray-500">
-                  Trang 1 của 2
-                </span>
-                <button className="p-1 hover:bg-gray-100 rounded text-gray-400">
-                  <ChevronRight size={18} />
-                </button>
+            {error ? (
+              <div className="p-10 text-center text-red-500 flex flex-col items-center gap-2">
+                <AlertCircle size={40} />
+                <p>{error}</p>
               </div>
-            </div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-4">Mã đơn</th>
+                    <th className="px-6 py-4 text-center">Loại</th>
+                    <th className="px-6 py-4">Tên sáng chế</th>
+                    <th className="px-6 py-4">Ngày nộp</th>
+                    <th className="px-6 py-4">Trạng thái</th>
+                    <th className="px-6 py-4 text-center">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filteredPatents.length > 0 ? filteredPatents.map((item) => {
+                    const ui = getStatusUI(item.status);
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50 transition group">
+                        <td 
+  className="px-6 py-4 text-sm font-bold text-blue-500 cursor-pointer hover:underline"
+  onClick={() => navigate(`/applicant/patent/view/${item.id}`)} // Thêm dòng này
+>
+  {item.appNo || "ĐANG CẤP"}
+</td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`text-[10px] font-black ${item.appType === "Giải pháp hữu ích" ? "text-red-400" : "text-green-400"}`}>
+                            {item.appType === "Giải pháp hữu ích" ? "GPHI" : "SÁNGC"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-700 max-w-xs truncate">
+                          {item.patentName || "Chưa có tên"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 font-medium">
+                          {new Date(item.createdAt).toLocaleDateString("vi-VN")}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 w-fit ${ui.color}`}>
+                            {ui.warning && <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>}
+                            {ui.label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-3 text-gray-400">
+                            <Eye size={16} className="cursor-pointer hover:text-blue-500" onClick={() => navigate(`/applicant/patent/view/${item.id}`)} />
+                            {ui.warning && <Edit3 size={16} className="cursor-pointer hover:text-orange-500" />}
+                            {ui.fee && <CreditCard size={16} className="cursor-pointer hover:text-blue-600" />}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-10 text-center text-gray-400 italic">Không có dữ liệu phù hợp</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </main>
@@ -274,25 +230,14 @@ const PatentList = () => {
 
 // Sub-components
 const NavItem = ({ icon, label, active = false, onClick }) => (
-  <div
-    onClick={onClick}
-    className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
-      active ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"
-    }`}
-  >
+  <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${active ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"}`}>
     {icon}
     <span className="font-bold text-sm">{label}</span>
   </div>
 );
 
-const FilterButton = ({ label, active = false }) => (
-  <button
-    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-      active
-        ? "bg-blue-500 text-white border-blue-500 shadow-sm"
-        : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
-    }`}
-  >
+const FilterButton = ({ label, active = false, onClick }) => (
+  <button onClick={onClick} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all border ${active ? "bg-blue-500 text-white border-blue-500 shadow-sm" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
     {label}
   </button>
 );

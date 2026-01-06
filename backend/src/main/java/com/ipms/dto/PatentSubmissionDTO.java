@@ -18,6 +18,7 @@ public class PatentSubmissionDTO {
     private String solutionType;
     private String technicalField;
     private String summary;
+    private Integer totalPages;
     
     // Sửa lỗi mapping ipcCode (đã thống nhất)
     @JsonProperty("ipcCode")

@@ -28,7 +28,7 @@ const AcceptConfirmation = () => {
     if (id) fetchDetail();
   }, [id]);
 
-  // --- HÀM XỬ LÝ CẬP NHẬT TRẠNG THÁI (PATCH) ---
+  // --- HÀM XỬ LÝ CẬP NHẬT TRẠNG THÁI ---
   const handleConfirm = async () => {
     try {
       const response = await fetch(`http://localhost:8080/api/patents/${id}/status`, {
@@ -36,11 +36,16 @@ const AcceptConfirmation = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: "DANG_TD_NOI_DUNG" }), // Chuyển sang Enum thẩm định nội dung
+        // SỬA TẠI ĐÂY: Chuyển sang trạng thái Chờ nộp phí GD2 thay vì Thẩm định nội dung
+        body: JSON.stringify({ 
+          status: "CHO_NOP_PHI_GD2",
+          note: "Hồ sơ đạt yêu cầu hình thức. Chờ người nộp đơn hoàn thành lệ phí giai đoạn 2."
+        }), 
       });
 
       if (response.ok) {
-        alert(`Hồ sơ ${app?.appNo} đã được chuyển sang giai đoạn Thẩm định nội dung!`);
+        // Cập nhật lại thông báo cho đúng nghiệp vụ
+        alert(`Hồ sơ ${app?.appNo} đã được xác nhận Hợp lệ hình thức và đang chờ nộp lệ phí GĐ2!`);
         navigate("/examiner/utility-solutions"); 
       } else {
         const errorData = await response.json();
@@ -48,7 +53,7 @@ const AcceptConfirmation = () => {
       }
     } catch (error) {
       console.error("Lỗi kết nối:", error);
-      alert("Lỗi kết nối CORS! Hãy đảm bảo Backend đã restart với cấu hình PATCH.");
+      alert("Lỗi kết nối! Vui lòng kiểm tra lại server Backend.");
     }
   };
 
@@ -127,7 +132,8 @@ const AcceptConfirmation = () => {
           </div>
 
           <p className="text-center text-slate-500 text-sm leading-relaxed max-w-[500px] mb-12">
-            Hệ thống sẽ ghi nhận hồ sơ <b>{app.appNo}</b> đủ điều kiện hình thức và tự động gửi thông báo chấp nhận đến người nộp đơn qua email. Bạn có chắc chắn muốn thực hiện?
+            Hệ thống sẽ ghi nhận hồ sơ <b>{app.appNo}</b> đủ điều kiện hình thức và chuyển sang trạng thái 
+            <b className="text-[#4F46E5]"> Chờ nộp lệ phí giai đoạn 2</b>. Thông báo yêu cầu thanh toán sẽ được gửi đến người nộp đơn.
           </p>
 
           <div className="flex gap-4 w-full justify-center">
@@ -141,7 +147,7 @@ const AcceptConfirmation = () => {
               className="px-10 py-3 bg-[#4F46E5] text-white rounded-lg font-bold text-sm hover:bg-[#4338ca] transition-all shadow-lg shadow-indigo-100"
               onClick={handleConfirm}
             >
-              Xác nhận & Chuyển bước
+              Xác nhận & Yêu cầu đóng phí
             </button>
           </div>
         </div>

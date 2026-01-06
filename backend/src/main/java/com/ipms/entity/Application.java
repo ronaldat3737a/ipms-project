@@ -25,6 +25,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Application {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
@@ -67,6 +68,10 @@ public class Application {
 
     @Column(nullable = false, columnDefinition = "text")
     private String summary;
+
+    @Builder.Default
+    @Column(name = "total_pages")
+    private Integer totalPages = 0;
 
     // --- CẬP NHẬT ENUM FILING_BASIS ---
     @Enumerated(EnumType.STRING)

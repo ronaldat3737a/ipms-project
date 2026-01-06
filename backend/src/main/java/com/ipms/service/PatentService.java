@@ -125,6 +125,7 @@ public class PatentService {
                 .technicalField(dto.getTechnicalField())
                 .ipcCodes(ipcList)
                 .summary(dto.getSummary())
+                .totalPages(dto.getTotalPages())
                 .filingBasis(FilingBasis.TRUC_TUYEN)
                 .user(currentUser)
                 .status(AppStatus.MOI) // Trạng thái khởi tạo là MỚI
