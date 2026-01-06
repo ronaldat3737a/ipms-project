@@ -38,11 +38,6 @@ public class PatentService {
     @Transactional(rollbackFor = Exception.class)
     @Deprecated
     public Application submitPatent(PatentSubmissionDTO dto, Long userId, MultipartFile[] files) {
-        // This method is deprecated and contains compilation errors due to outdated logic.
-        // Commenting it out to allow the project to build.
-        // The new flow uses createApplication() and submitApplication().
-        return null;
-        /*
         User currentUser = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
@@ -50,15 +45,20 @@ public class PatentService {
         List<String> ipcList = new ArrayList<>();
         if (dto.getIpcCodes() != null && !dto.getIpcCodes().isEmpty()) {
             // Dùng addAll vì dto.getIpcCodes() đã là một danh sách rồi
-            ipcList.addAll(dto.getIpcCodes());
+            ipcList.addAll(dto.getIpcCodes()); 
         }
 
         // 2. Đưa vào Builder
         Application app = Application.builder()
-                .applicant(user)
-                .appNo(appNo)
-                .name(dto.getName())
-                .totalPages(dto.getTotalPages())
+                .appType(mapAppType(dto.getAppType()))
+                .title(dto.getTitle())
+                .solutionDetail(dto.getSolutionDetail())
+                .solutionType(mapSolutionType(dto.getSolutionType()))
+                .technicalField(dto.getTechnicalField())
+                .ipcCodes(ipcList) // Gán danh sách đã xử lý
+                .summary(dto.getSummary())
+                .filingBasis(FilingBasis.TRUC_TUYEN)
+                .user(currentUser)
                 .status(AppStatus.CHO_NOP_PHI_GD1)
                 .build();
 
@@ -104,7 +104,6 @@ public class PatentService {
         }
 
         return app;
-        */
     }
 
 
@@ -188,8 +187,8 @@ public class PatentService {
             throw new IllegalStateException("Chỉ có thể nộp đơn ở trạng thái MỚI.");
         }
         
-        // TẠO PHÍ GIAI ĐOẠN 1 sẽ được thực hiện "On-demand" khi người dùng nhấn nút thanh toán.
-        // paymentService.createFeeForStage1(app);
+        // TẠO PHÍ GIAI ĐOẠN 1 (Sử dụng PaymentService)
+        paymentService.createFeeForStage1(app);
 
         // 2. Sinh appNo
         String appNo = generateAppNo(app.getAppType());
