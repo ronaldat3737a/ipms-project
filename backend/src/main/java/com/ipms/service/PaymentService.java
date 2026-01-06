@@ -133,6 +133,7 @@ public class PaymentService {
         vnp_Params.put("vnp_OrderType", "250000");
         vnp_Params.put("vnp_Locale", "vn");
         vnp_Params.put("vnp_ReturnUrl", VnPayConfig.vnp_ReturnUrl);
+        vnp_Params.put("vnp_IpnUrl", VnPayConfig.vnp_IpnUrl);
         vnp_Params.put("vnp_IpAddr", "127.0.0.1"); // Or get from request
 
         Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
