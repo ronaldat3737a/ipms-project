@@ -29,6 +29,7 @@ import SuccessPage from "./pages/Applicant/Patent/Filing/SuccessPage";
 import AcceptConfirmation from "./pages/Examiner/Patent/AcceptConfirmation";
 import RejectConfirmation from "./pages/Examiner/Patent/RejectConfirmation";
 import CorrectionRequest from "./pages/Examiner/Patent/CorrectionRequest";
+import SubstantiveReview from "./pages/Examiner/Patent/SubstantiveReview";
 
 import PatentDetail from "./pages/Applicant/Patent/PatentDetail";
 import Phase2Payment from "./pages/Applicant/Patent/Phase2Payment";
@@ -69,6 +70,7 @@ function App() {
         <Route path="/examiner/utility-solutions" element={<UtilityReviewList />} />
         
         <Route path="/examiner/review/:type/:id" element={<ApplicationReview />} />
+        <Route path="/examiner/substantive-review/sang-che/:id" element={<SubstantiveReview />} />
         <Route path="/examiner/review/:type/:id/accept" element={<AcceptConfirmation />} />
         <Route path="/examiner/review/:type/:id/reject" element={<RejectConfirmation />} />
         <Route path="/examiner/review/:type/:id/correction" element={<CorrectionRequest />} />

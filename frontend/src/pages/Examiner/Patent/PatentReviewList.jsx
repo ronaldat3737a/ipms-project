@@ -66,6 +66,15 @@ const PatentReviewList = () => {
   return matchesTab() && matchesSearch;
 }) : [];
 
+  const handleRowClick = (item) => {
+    const substantiveReviewStatuses = ["DANG_TD_NOI_DUNG", "CHO_SUA_DOI_NOI_DUNG"];
+    if (substantiveReviewStatuses.includes(item.status)) {
+      navigate(`/examiner/substantive-review/sang-che/${item.id}`);
+    } else {
+      navigate(`/examiner/review/sang-che/${item.id}`);
+    }
+  };
+
   const renderStatusBadge = (status) => {
     let colorClass = "bg-blue-100 text-blue-600";
     let statusText = status;
@@ -187,7 +196,7 @@ const PatentReviewList = () => {
           <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
             <td 
               className="px-8 py-5 font-bold text-blue-600 underline text-sm cursor-pointer hover:text-blue-800"
-              onClick={() => navigate(`/examiner/review/sang-che/${item.id}`)}
+              onClick={() => handleRowClick(item)}
             >
               {item.appNo || "Đang cấp mã..."}
             </td>
