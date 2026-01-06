@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,12 +28,24 @@ public class PaymentStage3Service {
 
     @Transactional
     public ApplicationFee createFeeForStage3(Application application) {
-        BigDecimal stage3FeeAmount = BigDecimal.valueOf(800_000); // Example fee for stage 3
+        
+        Optional<ApplicationFee> existingFee = feeRepository.findByApplication_IdAndStage(application.getId(), FeeStage.PHI_GD3);
+        if (existingFee.isPresent()) {
+            return existingFee.get();
+        }
+
+        // --- REPLICATE FRONTEND FEE CALCULATION LOGIC ---
+        BigDecimal FEE_GRANT = BigDecimal.valueOf(600000);
+        BigDecimal FEE_PUBLICATION = BigDecimal.valueOf(120000);
+        BigDecimal FEE_MAINTENANCE_FIRST_YEAR = BigDecimal.valueOf(400000);
+
+        BigDecimal totalAmount = FEE_GRANT.add(FEE_PUBLICATION).add(FEE_MAINTENANCE_FIRST_YEAR);
+        // --- END OF CALCULATION ---
 
         ApplicationFee fee = ApplicationFee.builder()
                 .application(application)
                 .stage(FeeStage.PHI_GD3)
-                .amount(stage3FeeAmount)
+                .amount(totalAmount)
                 .status(PaymentStatus.CHUA_THANH_TOAN)
                 .build();
 
