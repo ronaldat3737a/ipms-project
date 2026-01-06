@@ -29,6 +29,7 @@ public class PatentService {
     private final ClaimRepository claimRepository;
     private final AttachmentRepository attachmentRepository;
     private final UserRepository userRepository;
+    private final ReviewHistoryRepository reviewHistoryRepository;
     private final PaymentService paymentService;
     private final EntityManager entityManager; 
 
@@ -345,19 +346,35 @@ public class PatentService {
 
     // Tại file com.ipms.service.PatentService.java
 
-public Application updateApplicationStatus(UUID id, String status) {
-    Application app = applicationRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Hồ sơ không tồn tại"));
-    
-    try {
-        // Chuyển chuỗi String sang Enum AppStatus một cách an toàn
-        AppStatus newStatus = AppStatus.valueOf(status.toUpperCase());
-        app.setStatus(newStatus);
-    } catch (IllegalArgumentException e) {
-        throw new RuntimeException("Trạng thái không hợp lệ: " + status);
-    }
+    @Transactional(rollbackFor = Exception.class) // Thêm Transaction để đảm bảo an toàn dữ liệu
+    public Application updateApplicationStatus(UUID id, String status, String note) {
+        // 1. Tìm hồ sơ hiện tại
+        Application app = applicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Hồ sơ không tồn tại"));
+        
+        AppStatus newStatus;
+        try {
+            // 2. Chuyển chuỗi String sang Enum AppStatus
+            newStatus = AppStatus.valueOf(status.toUpperCase());
+            app.setStatus(newStatus);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Trạng thái không hợp lệ: " + status);
+        }
 
-    return applicationRepository.save(app);
-}
+        // 3. Lưu cập nhật trạng thái đơn vào bảng Applications
+        app = applicationRepository.save(app);
+
+        // 4. MỚI: Tạo bản ghi lịch sử vào bảng ReviewHistory
+        ReviewHistory history = new ReviewHistory();
+        history.setApplication(app); // Gán quan hệ tới Application
+        history.setStatusTo(newStatus); // Trạng thái mới chuyển tới
+        history.setNote(note); // Lưu lý do từ chối / yêu cầu sửa đổi
+        history.setReviewDate(java.time.OffsetDateTime.now()); // Thời điểm thực hiện
+        
+        // Lưu vào bảng review_history
+        reviewHistoryRepository.save(history);
+
+        return app;
+    }
     
 }

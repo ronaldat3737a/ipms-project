@@ -86,16 +86,21 @@ public class PatentController {
 
      // Tại file com.ipms.controller.PatentController.java
 
-@PatchMapping("/{id}/status")
-public ResponseEntity<Application> updateStatus(
-        @PathVariable UUID id, 
-        @RequestBody Map<String, String> statusUpdate) {
-    
-    String newStatus = statusUpdate.get("status");
-    Application updatedApp = patentService.updateApplicationStatus(id, newStatus);
-    return ResponseEntity.ok(updatedApp);
-}
-    // Bổ sung vào PatentController.java
-
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Application> updateStatus(
+            @PathVariable UUID id, 
+            @RequestBody Map<String, String> statusUpdate) {
+        
+        // 1. Lấy trạng thái mới từ JSON (ví dụ: TU_CHOI_DON)
+        String newStatus = statusUpdate.get("status");
+        
+        // 2. MỚI: Lấy thêm lý do/ghi chú từ JSON (trường 'note' gửi từ React)
+        String note = statusUpdate.get("note"); 
+        
+        // 3. Gọi Service với 3 tham số (ID, Status, Note) để thực hiện lưu DB và ReviewHistory
+        Application updatedApp = patentService.updateApplicationStatus(id, newStatus, note);
+        
+        return ResponseEntity.ok(updatedApp);
+    }
 
 }
