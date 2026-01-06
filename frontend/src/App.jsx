@@ -75,6 +75,23 @@ function App() {
         <Route path="/examiner/review/:type/:id/reject" element={<RejectConfirmation />} />
         <Route path="/examiner/review/:type/:id/correction" element={<CorrectionRequest />} />
 
+        {/* GIAI ĐOẠN 2: THẨM ĐỊNH NỘI DUNG (MỚI BỔ SUNG) */}
+        <Route path="/examiner/substantive-review/sang-che/:id" element={<SubstantiveReview />} />
+
+        {/* 3 Dòng mới dưới đây để fix lỗi "No routes matched" */}  
+        <Route 
+          path="/examiner/substantive-review/sang-che/:id/grant" 
+          element={<AcceptConfirmation phase="substantive" />} 
+        />
+        <Route 
+          path="/examiner/substantive-review/sang-che/:id/reject" 
+          element={<RejectConfirmation phase="substantive" />} 
+        />
+        <Route 
+          path="/examiner/substantive-review/sang-che/:id/correction" 
+          element={<CorrectionRequest phase="substantive" />} 
+        />
+
         {/* --- NGƯỜI NỘP ĐƠN --- */}
         <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
         <Route path="/applicant/patent" element={<PatentList />} />
