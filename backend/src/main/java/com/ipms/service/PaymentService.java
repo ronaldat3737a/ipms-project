@@ -30,6 +30,8 @@ public class PaymentService {
     private final ApplicationFeeRepository feeRepository;
     private final ApplicationRepository applicationRepository;
     private final ReviewHistoryRepository reviewHistoryRepository;
+    private final PaymentStage2Service paymentStage2Service;
+    private final PaymentStage3Service paymentStage3Service;
 
     /* =====================================================
      * GET FEES FOR APPLICATION
@@ -79,7 +81,7 @@ public class PaymentService {
     }
 
     /* =====================================================
-     * VNPay IPN PROCESSING (CORE LOGIC)
+     * VNPay IPN PROCESSING (CORE LOGIC & DISPATCHER)
      * ===================================================== */
     @Transactional
     public Application processVnPayIpn(Map<String, String> vnp_Params) {
@@ -91,7 +93,6 @@ public class PaymentService {
         }
 
         /* ---------- 2. PARSE TxnRef ---------- */
-        // Format: [AppNo]_[Stage]_[Timestamp]
         String txnRef = vnp_Params.get("vnp_TxnRef");
         String[] parts = txnRef.split("_");
 
@@ -101,66 +102,93 @@ public class PaymentService {
         }
 
         String appNo = parts[0];
-        FeeStage feeStage;
+        String stage = parts[1];
 
-        if ("1".equals(parts[1])) {
-            feeStage = FeeStage.PHI_GD1;
-        } else {
-            System.err.println("Unsupported stage: " + parts[1]);
-            return null;
+        FeeStage feeStage;
+        switch (stage) {
+            case "1":
+                feeStage = FeeStage.PHI_GD1;
+                break;
+            case "2":
+                feeStage = FeeStage.PHI_GD2;
+                break;
+            case "3":
+                feeStage = FeeStage.PHI_GD3;
+                break;
+            default:
+                System.err.println("Unsupported stage: " + stage);
+                return null;
         }
 
-        /* ---------- 3. FIND APPLICATION ---------- */
+
+        /* ---------- 3. FIND APPLICATION & FEE ---------- */
         Application application = applicationRepository.findByAppNo(appNo)
                 .orElseThrow(() -> new RuntimeException("Application not found: " + appNo));
 
-        /* ---------- 4. FIND FEE ---------- */
         ApplicationFee fee = feeRepository
                 .findByApplication_IdAndStage(application.getId(), feeStage)
-                .orElseThrow(() ->
-                        new RuntimeException("Fee not found for appNo " + appNo + " stage " + feeStage)
-                );
+                .orElseThrow(() -> new RuntimeException("Fee not found for appNo " + appNo + " stage " + feeStage));
 
-        /* ---------- 5. IDEMPOTENCY ---------- */
+
+        /* ---------- 4. IDEMPOTENCY CHECK ---------- */
         if (fee.getStatus() == PaymentStatus.DA_THANH_TOAN) {
             System.out.println("IPN already processed for " + txnRef);
             return application;
         }
 
-        /* ---------- 6. AMOUNT FROM VNPAY (SOURCE OF TRUTH) ---------- */
+        /* ---------- 5. DISPATCH TO APPROPRIATE SERVICE ---------- */
+        switch (feeStage) {
+            case PHI_GD1:
+                // Keep stage 1 logic here to minimize risk to existing flow
+                return processStage1Payment(application, fee, vnp_Params);
+            case PHI_GD2:
+                // Delegate to the new stage 2 service
+                return paymentStage2Service.processStage2Payment(application, fee, vnp_Params);
+            case PHI_GD3:
+                // Delegate to the new stage 3 service
+                return paymentStage3Service.processStage3Payment(application, fee, vnp_Params);
+            default:
+                 System.err.println("IPN ERROR: Should not reach here. Stage not supported " + feeStage);
+                 return null; // Should not happen due to earlier check
+        }
+    }
+
+    @Transactional
+    public Application processStage1Payment(Application application, ApplicationFee fee, Map<String, String> vnp_Params) {
+        /* ---------- AMOUNT FROM VNPAY (SOURCE OF TRUTH) ---------- */
         BigDecimal paidAmount = new BigDecimal(vnp_Params.get("vnp_Amount"))
                 .divide(BigDecimal.valueOf(100));
 
-        /* ---------- 7. VALIDATE AMOUNT ---------- */
+        /* ---------- VALIDATE AMOUNT ---------- */
         if (fee.getAmount() == null || fee.getAmount().compareTo(paidAmount) != 0) {
             System.out.println("Correcting fee amount from "
                     + fee.getAmount() + " to " + paidAmount);
             fee.setAmount(paidAmount);
         }
 
-        /* ---------- 8. UPDATE FEE ---------- */
+        /* ---------- UPDATE FEE ---------- */
         fee.setStatus(PaymentStatus.DA_THANH_TOAN);
         fee.setTransactionId(vnp_Params.get("vnp_TransactionNo"));
         fee.setPaidAt(OffsetDateTime.now());
         feeRepository.save(fee);
 
-        /* ---------- 9. UPDATE APPLICATION ---------- */
+        /* ---------- UPDATE APPLICATION ---------- */
         application.setStatus(AppStatus.DANG_TD_HINH_THUC);
         application.setUpdatedAt(OffsetDateTime.now());
         applicationRepository.save(application);
 
-        /* ---------- 10. REVIEW HISTORY ---------- */
+        /* ---------- REVIEW HISTORY ---------- */
         ReviewHistory history = new ReviewHistory();
         history.setApplication(application);
         history.setReviewDate(OffsetDateTime.now());
         history.setStatusTo(AppStatus.DANG_TD_HINH_THUC);
         history.setNote(
-                "Xác nhận nộp phí " + feeStage +
+                "Xác nhận nộp phí " + fee.getStage() +
                 " qua VNPay. GD: " + fee.getTransactionId()
         );
         reviewHistoryRepository.save(history);
 
-        System.out.println("IPN SUCCESS: " + appNo + " - " + paidAmount);
+        System.out.println("IPN SUCCESS: " + application.getAppNo() + " - " + paidAmount);
         return application;
     }
 }

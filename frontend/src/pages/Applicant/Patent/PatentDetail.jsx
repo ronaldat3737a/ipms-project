@@ -229,7 +229,10 @@ const PatentDetail = () => {
                     <span className="text-sm font-bold">📜 Lệ phí Cấp văn bằng & Công bố</span>
                 </div>
                 {app.status === "CHO_NOP_PHI_GD3" ? (
-                    <button className="bg-pink-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-sm">
+                    <button 
+                        onClick={() => navigate(`/applicant/payment/phase3/${app.id}`)}
+                        className="bg-pink-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-pink-700 transition-all"
+                    >
                         THANH TOÁN NGAY
                     </button>
                 ) : (

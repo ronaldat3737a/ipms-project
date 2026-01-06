@@ -31,7 +31,8 @@ import RejectConfirmation from "./pages/Examiner/Patent/RejectConfirmation";
 import CorrectionRequest from "./pages/Examiner/Patent/CorrectionRequest";
 
 import PatentDetail from "./pages/Applicant/Patent/PatentDetail";
-import Phase2Payment from "./pages/Applicant/Patent/Phase2Payment"; // Đổi thành Phase2Payment
+import Phase2Payment from "./pages/Applicant/Patent/Phase2Payment";
+import Phase3Payment from "./pages/Applicant/Patent/Phase3Payment";
 
 function App() {
   return (
@@ -78,6 +79,7 @@ function App() {
 
         <Route path="/applicant/patent/view/:id" element={<PatentDetail />} />
         <Route path="/applicant/payment/phase2/:id" element={<Phase2Payment />} />
+        <Route path="/applicant/payment/phase3/:id" element={<Phase3Payment />} />
 
       </Routes>
     </Router>
