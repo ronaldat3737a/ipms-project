@@ -51,11 +51,18 @@ public class PaymentController {
             Application application = applicationRepository.findByAppNo(appNo)
                     .orElseThrow(() -> new RuntimeException("Mã đơn không hợp lệ hoặc không tồn tại!"));
 
-            // 2. KIỂM TRA TRẠNG THÁI THEO YÊU CẦU
-            if (application.getStatus() != AppStatus.CHO_NOP_PHI_GD1) {
+            // 2. KIỂM TRA TRẠNG THÁI THEO GIAI ĐOẠN
+            boolean isStatusValid = switch (stage) {
+                case 1 -> application.getStatus() == AppStatus.CHO_NOP_PHI_GD1;
+                case 2 -> application.getStatus() == AppStatus.CHO_NOP_PHI_GD2;
+                case 3 -> application.getStatus() == AppStatus.CHO_NOP_PHI_GD3;
+                default -> false;
+            };
+
+            if (!isStatusValid) {
                 return ResponseEntity
                         .badRequest()
-                        .body(Map.of("message", "Đơn không ở trạng thái chờ nộp phí GD1"));
+                        .body(Map.of("message", "Đơn không ở trạng thái hợp lệ để nộp phí giai đoạn " + stage + ". Trạng thái hiện tại: " + application.getStatus().name()));
             }
 
             String vnp_Version = "2.1.0";
