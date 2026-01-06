@@ -2,15 +2,23 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Check, ChevronLeft, Bell, ShieldCheck } from "lucide-react";
 
-const AcceptConfirmation = () => {
+const AcceptConfirmation = ({ phase }) => { // Nhận phase từ Props (App.jsx)
   const navigate = useNavigate();
-  const { id } = useParams(); // ID này phải là UUID được truyền từ danh sách
+  const { id } = useParams();
 
-  // --- TRẠNG THÁI DỮ LIỆU THẬT ---
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // --- FETCH CHI TIẾT ĐƠN ---
+  // --- CẤU HÌNH NỘI DUNG THEO GIAI ĐOẠN ---
+  const isSubstantive = phase === "substantive";
+  const config = {
+    headerTitle: isSubstantive ? "XÁC NHẬN CẤP BẰNG ĐỘC QUYỀN" : "XÁC NHẬN HỢP LỆ HÌNH THỨC",
+    targetStatus: isSubstantive ? "CHO_NOP_PHI_GD3" : "CHO_NOP_PHI_GD2",
+    targetStatusName: isSubstantive ? "Chờ nộp lệ phí giai đoạn 3" : "Chờ nộp lệ phí giai đoạn 2",
+    note: isSubstantive ? "Hồ sơ đạt yêu cầu nội dung. Chờ cấp bằng." : "Hồ sơ đạt yêu cầu hình thức. Chờ người nộp đơn hoàn thành lệ phí giai đoạn 2.",
+    successAlert: isSubstantive ? "đã được phê duyệt nội dung và chờ cấp bằng!" : "đã được xác nhận Hợp lệ hình thức và đang chờ nộp lệ phí GĐ2!"
+  };
+
   useEffect(() => {
     const fetchDetail = async () => {
       setLoading(true);
@@ -28,25 +36,20 @@ const AcceptConfirmation = () => {
     if (id) fetchDetail();
   }, [id]);
 
-  // --- HÀM XỬ LÝ CẬP NHẬT TRẠNG THÁI ---
   const handleConfirm = async () => {
     try {
       const response = await fetch(`http://localhost:8080/api/patents/${id}/status`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        // SỬA TẠI ĐÂY: Chuyển sang trạng thái Chờ nộp phí GD2 thay vì Thẩm định nội dung
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          status: "CHO_NOP_PHI_GD2",
-          note: "Hồ sơ đạt yêu cầu hình thức. Chờ người nộp đơn hoàn thành lệ phí giai đoạn 2."
+          status: config.targetStatus, // Dùng status động
+          note: config.note             // Dùng ghi chú động
         }), 
       });
 
       if (response.ok) {
-        // Cập nhật lại thông báo cho đúng nghiệp vụ
-        alert(`Hồ sơ ${app?.appNo} đã được xác nhận Hợp lệ hình thức và đang chờ nộp lệ phí GĐ2!`);
-        navigate("/examiner/utility-solutions"); 
+        alert(`Hồ sơ ${app?.appNo} ${config.successAlert}`);
+        navigate("/examiner/patents"); 
       } else {
         const errorData = await response.json();
         alert("Lỗi: " + (errorData.message || "Không thể cập nhật trạng thái"));
@@ -65,22 +68,18 @@ const AcceptConfirmation = () => {
 
   if (!app) return (
     <div className="min-h-screen bg-[#94a3b8] flex items-center justify-center font-sans text-white text-center">
-      Lỗi: Không tìm thấy hồ sơ tương ứng hoặc ID không đúng định dạng UUID.
+      Lỗi: Không tìm thấy hồ sơ.
     </div>
   );
 
   return (
     <div className="min-h-screen bg-[#94a3b8] flex flex-col font-sans text-slate-900">
-      {/* --- HEADER --- */}
       <header className="h-16 bg-white px-8 flex items-center justify-between shadow-sm shrink-0">
         <div className="flex items-center gap-6">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
             <ShieldCheck size={24} />
           </div>
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-[#0D6EFD] font-bold text-sm hover:underline"
-          >
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-[#0D6EFD] font-bold text-sm hover:underline">
             <ChevronLeft size={20} /> Quay lại
           </button>
         </div>
@@ -95,10 +94,8 @@ const AcceptConfirmation = () => {
         </div>
       </header>
 
-      {/* --- MAIN CONTENT (MODAL) --- */}
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="max-w-[720px] w-full bg-white rounded-[24px] shadow-2xl p-12 flex flex-col items-center animate-in fade-in zoom-in duration-300">
-          {/* Icon Checkmark */}
           <div className="w-24 h-24 bg-[#EEF2FF] rounded-full flex items-center justify-center text-[#4F46E5] mb-8">
             <div className="w-16 h-16 rounded-full border-4 border-[#4F46E5] flex items-center justify-center">
               <Check size={40} strokeWidth={3} />
@@ -106,10 +103,9 @@ const AcceptConfirmation = () => {
           </div>
 
           <h1 className="text-[28px] font-black text-[#1E293B] uppercase tracking-tight mb-12 text-center">
-            XÁC NHẬN HỢP LỆ HÌNH THỨC
+            {config.headerTitle} {/* Hiển thị tiêu đề động */}
           </h1>
 
-          {/* Info List (Đã dọn sạch lỗi Hydration) */}
           <div className="w-full max-w-[420px] space-y-6 mb-12">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <span className="text-slate-500 font-medium">Mã số đơn</span>
@@ -125,15 +121,11 @@ const AcceptConfirmation = () => {
                 {app.applicant?.fullName || "Chưa cập nhật"}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <span className="text-slate-500 font-medium">Người thẩm định</span>
-              <span className="text-[#1E293B] font-bold text-right">Cán bộ hệ thống</span>
-            </div>
           </div>
 
           <p className="text-center text-slate-500 text-sm leading-relaxed max-w-[500px] mb-12">
-            Hệ thống sẽ ghi nhận hồ sơ <b>{app.appNo}</b> đủ điều kiện hình thức và chuyển sang trạng thái 
-            <b className="text-[#4F46E5]"> Chờ nộp lệ phí giai đoạn 2</b>. Thông báo yêu cầu thanh toán sẽ được gửi đến người nộp đơn.
+            Hệ thống sẽ ghi nhận hồ sơ <b>{app.appNo}</b> đạt yêu cầu và chuyển sang trạng thái 
+            <b className="text-[#4F46E5]"> {config.targetStatusName}</b>. Thông báo yêu cầu thanh toán sẽ được gửi đến người nộp đơn.
           </p>
 
           <div className="flex gap-4 w-full justify-center">
@@ -147,7 +139,7 @@ const AcceptConfirmation = () => {
               className="px-10 py-3 bg-[#4F46E5] text-white rounded-lg font-bold text-sm hover:bg-[#4338ca] transition-all shadow-lg shadow-indigo-100"
               onClick={handleConfirm}
             >
-              Xác nhận & Yêu cầu đóng phí
+              Xác nhận & Chuyển bước tiếp theo
             </button>
           </div>
         </div>
