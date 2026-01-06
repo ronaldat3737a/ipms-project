@@ -150,10 +150,10 @@ public class PaymentService {
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
                 hashData.append(fieldName);
                 hashData.append('=');
-                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8.toString()));
-                query.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8.toString()));
+                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
+                query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString()));
                 query.append('=');
-                query.append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8.toString()));
+                query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
                 if (itr.hasNext()) {
                     query.append('&');
                     hashData.append('&');
