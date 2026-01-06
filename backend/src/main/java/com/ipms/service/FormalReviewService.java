@@ -19,26 +19,37 @@ public class FormalReviewService {
     private final ApplicationRepository appRepository;
     private final ReviewHistoryRepository historyRepository;
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void handleFormalReview(UUID appId, ReviewRequest request) {
         // 1. Kiểm tra tồn tại
         Application app = appRepository.findById(appId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ với ID: " + appId));
 
-        // 2. Kiểm tra logic nghiệp vụ (Business Rule)
-        // Chỉ được thẩm định khi đang ở trạng thái MOI hoặc DANG_TD_HINH_THUC
+        // 2. Kiểm tra logic nghiệp vụ
         if (app.getStatus() != AppStatus.MOI && app.getStatus() != AppStatus.DANG_TD_HINH_THUC) {
-            throw new IllegalStateException("Trạng thái hiện tại (" + app.getStatus() + ") không cho phép thẩm định hình thức.");
+            throw new IllegalStateException("Hồ sơ không ở trạng thái thẩm định hình thức.");
         }
 
-        // 3. Cập nhật trạng thái
-        app.setStatus(request.getStatus());
+        // 3. ĐIỀU CHỈNH LOGIC CHUYỂN TRẠNG THÁI TẠI ĐÂY
+        AppStatus nextStatus;
+
+        // Giả sử request.getDecision() là "APPROVE", "REJECT" hoặc "CORRECT"
+        // Hoặc nếu bạn dùng request.getStatus(), hãy kiểm tra giá trị của nó
+        if (request.getStatus() == AppStatus.CHO_NOP_PHI_GD2 || "APPROVE".equals(request.getNote())) {
+            // ÉP BUỘC: Thẩm định hình thức xong PHẢI nộp phí GĐ 2
+            nextStatus = AppStatus.CHO_NOP_PHI_GD2;
+        } else {
+            // Các trường hợp từ chối hoặc yêu cầu sửa đổi thì giữ theo request
+            nextStatus = request.getStatus();
+        }
+
+        app.setStatus(nextStatus);
         appRepository.save(app);
 
         // 4. Lưu lịch sử
         ReviewHistory history = ReviewHistory.builder()
                 .application(app)
-                .statusTo(request.getStatus())
+                .statusTo(nextStatus)
                 .note(request.getNote())
                 .build();
         historyRepository.save(history);

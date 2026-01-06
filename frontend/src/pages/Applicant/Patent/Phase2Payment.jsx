@@ -37,7 +37,12 @@ const Phase2Payment = () => {
   const FEE_EXCESS_PAGE = 32000; // Phí từ trang thứ 7 trở đi
 
   // Lấy dữ liệu từ Database (app object)
-  const numIndependentClaims = app?.claims?.filter(c => c.type === "Độc lập").length || 0;
+  const numIndependentClaims = app?.claims?.filter(c => 
+    c.type === "DOK_LAP" || 
+    c.claimType === "DOK_LAP" || 
+    c.type === "Độc lập" ||
+    c.claimType === "Độc lập"
+  ).length || 0;
   const totalPages = parseInt(app?.totalPages) || 0; // Đảm bảo trường totalPages có trong Entity Application
 
   // Tính toán chi tiết
