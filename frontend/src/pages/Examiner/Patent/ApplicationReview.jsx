@@ -2,12 +2,22 @@ import React, { useState, useEffect } from "react"; // Thêm useEffect
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ChevronLeft, Download, Eye, CheckCircle, AlertTriangle, 
-  XCircle, ChevronDown, Info, Users, FileText, Layers, History
+  XCircle, ChevronDown, Info, Users, FileText, Layers, History,
+  Award, Search, Calendar
 } from "lucide-react";
 
 // SỬA LỖI BUILD VERCEL: Dùng CDN ổn định cho PDF.js worker
 import * as pdfjsLib from "pdfjs-dist";
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.min.js`;
+
+// Thêm vào sau dòng 20
+const calculateDaysElapsed = (dateString) => {
+  if (!dateString) return 0;
+  const start = new Date(dateString);
+  const today = new Date();
+  const diffTime = Math.abs(today - start);
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
 
 const ApplicationReview = () => {
   const navigate = useNavigate();
@@ -16,6 +26,17 @@ const ApplicationReview = () => {
   // --- TRẠNG THÁI DỮ LIỆU ---
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // DI CHUYỂN HÀM getHeaderInfo VÀO TRONG COMPONENT
+  const getHeaderInfo = () => {
+    switch (app?.status) {
+      case "DANG_TD_NOI_DUNG": return { title: "Thẩm định Nội dung", color: "text-purple-600" };
+      case "CHO_NOP_PHI_GD2": return { title: "Đợi nộp phí GĐ2", color: "text-amber-600" };
+      case "CAP_VAN_BANG": return { title: "Cấp văn bằng", color: "text-green-600" };
+      case "TU_CHOI_DON": return { title: "Đơn đã bị từ chối", color: "text-red-600" };
+      default: return { title: "Thẩm định Hình thức", color: "text-blue-600" };
+    }
+  };
 
   // --- FETCH DỮ LIỆU TỪ BACKEND ---
   useEffect(() => {
@@ -57,10 +78,10 @@ const ApplicationReview = () => {
         
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold text-[#212529]">
-            Thẩm định hồ sơ: <span className="text-[#0D6EFD]">{app.appNo || "Chưa cấp mã"}</span>
+            {getHeaderInfo().title}: <span className={getHeaderInfo().color}>{app.appNo || "Chưa cấp mã"}</span>
           </h1>
-          <span className="px-3 py-1 bg-[#E7F1FF] text-[#0D6EFD] text-xs font-semibold rounded-full border border-[#CFE2FF]">
-            {app.status === 'MOI' ? 'Chờ thẩm định hình thức' : app.status}
+          <span className="px-3 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-full border border-slate-200 shadow-sm">
+            {app.status}
           </span>
         </div>
         
@@ -317,50 +338,106 @@ const ApplicationReview = () => {
         </section>
       </main>
 
-      {/* FOOTER ACTIONS BAR */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#DEE2E6] p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#198754]"></div>
-              <span className="text-[10px] font-bold text-[#198754] uppercase tracking-wider">Tiếp nhận</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_0_2px_rgba(13,110,253,0.2)]"></div>
-              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider underline underline-offset-4">Thẩm định hình thức</span>
-            </div>
-          </div>
-          {/* Action Buttons - Cập nhật logic điều hướng chuẩn */}
-<div className="flex items-center gap-3">
-  
-  {/* Nút Chấp nhận: Truyền data sang trang AccepConfirmation */}
-  <button 
-    onClick={() => navigate(`/examiner/review/sang-che/${id}/accept`, { state: { appData: app } })}
-    className="px-4 py-2 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#157347] transition-all"
-  >
-    <CheckCircle size={14} /> Chấp nhận hình thức
-  </button>
-
-  {/* Nút Yêu cầu sửa đổi: Truyền data sang trang CorrectionRequest */}
-  <button 
-    onClick={() => navigate(`/examiner/review/sang-che/${id}/correction`, { state: { appData: app } })}
-    className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6] transition-all"
-  >
-    <AlertTriangle size={14} /> Yêu cầu sửa đổi
-  </button>
-
-  {/* Nút Từ chối: Truyền data sang trang RejectConfirmation */}
-  <button 
-    onClick={() => navigate(`/examiner/review/sang-che/${id}/reject`, { state: { appData: app } })}
-    className="px-4 py-2 bg-[#DC3545] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#bb2d3b] transition-all"
-  >
-    <XCircle size={14} /> Từ chối đơn
-  </button>
-</div>
-          
+{/* FOOTER ACTIONS BAR - THAY THẾ TỪ DÒNG 230 */}
+<div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#DEE2E6] p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50">
+  <div className="max-w-6xl mx-auto flex items-center justify-between">
+    
+    {/* TRÁI: THÔNG TIN BỔ SUNG */}
+    <div className="flex items-center gap-6">
+      {app.status === "CHO_NOP_PHI_GD2" ? (
+        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-100 rounded-lg animate-pulse">
+          <Calendar size={16} className="text-red-600" />
+          <span className="text-xs font-black text-red-600 uppercase">
+            Số ngày chờ phí: {calculateDaysElapsed(app.updatedAt)} ngày
+          </span>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${app.status === 'TU_CHOI_DON' ? 'bg-slate-300' : 'bg-green-500'}`}></div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tiếp nhận</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${['MOI', 'DANG_TD_HINH_THUC'].includes(app.status) ? 'bg-blue-500 shadow-[0_0_0_2px_rgba(59,130,246,0.2)]' : 'bg-slate-300'}`}></div>
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${['MOI', 'DANG_TD_HINH_THUC'].includes(app.status) ? 'text-blue-600 underline' : 'text-slate-400'}`}>Hình thức</span>
+          </div>
+          {app.status === 'DANG_TD_NOI_DUNG' && (
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_0_2px_rgba(168,85,247,0.2)]"></div>
+              <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider underline">Nội dung</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
+
+    {/* PHẢI: NHÓM NÚT BẤM THEO GIAI ĐOẠN */}
+    <div className="flex items-center gap-3">
+      {/* 1. GIAI ĐOẠN HÌNH THỨC */}
+      {(app.status === "MOI" || app.status === "DANG_TD_HINH_THUC") && (
+        <>
+          <button onClick={() => navigate(`/examiner/review/sang-che/${id}/accept`, { state: { appData: app } })} className="px-4 py-2 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#157347]">
+            <CheckCircle size={14} /> Chấp nhận hình thức
+          </button>
+          <button onClick={() => navigate(`/examiner/review/sang-che/${id}/correction`, { state: { appData: app } })} className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6]">
+            <AlertTriangle size={14} /> Yêu cầu sửa đổi
+          </button>
+        </>
+      )}
+
+      {/* 2. GIAI ĐOẠN CHỜ PHÍ */}
+      {app.status === "CHO_NOP_PHI_GD2" && (
+        <div className="flex items-center gap-2 italic text-slate-400 text-[11px] mr-4">
+          <Info size={14} /> Đang đợi hệ thống ghi nhận thanh toán từ người dùng...
+        </div>
+      )}
+
+      {/* 3. GIAI ĐOẠN NỘI DUNG */}
+      {app.status === "DANG_TD_NOI_DUNG" && (
+        <>
+          <button onClick={() => navigate(`/examiner/substantive-review/sang-che/${id}/grant`, { state: { appData: app } })} className="px-4 py-2 bg-[#0D6EFD] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#0b5ed7]">
+            <Award size={14} /> Chấp nhận cấp bằng
+          </button>
+          <button onClick={() => navigate(`/examiner/substantive-review/sang-che/${id}/correction`, { state: { appData: app } })} className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6]">
+            <AlertTriangle size={14} /> Sửa đổi nội dung
+          </button>
+        </>
+      )}
+
+      {/* 4. GIAI ĐOẠN CẤP BẰNG */}
+      {app.status === "CAP_VAN_BANG" && (
+        <>
+          <button className="px-4 py-2 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 shadow-lg shadow-green-100">
+            <Download size={14} /> Tải văn bằng điện tử
+          </button>
+          <button className="px-4 py-2 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-md flex items-center gap-2">
+            <Eye size={14} /> Xem quyết định
+          </button>
+        </>
+      )}
+
+      {/* 5. GIAI ĐOẠN TỪ CHỐI */}
+      {app.status === "TU_CHOI_DON" && (
+        <button onClick={() => navigate(`/examiner/review/sang-che/${id}/reject-reason`)} className="px-4 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-md flex items-center gap-2">
+          <Search size={14} /> Xem lý do từ chối
+        </button>
+      )}
+
+      {/* NÚT TỪ CHỐI CHUNG (Dùng cho Hình thức, Chờ phí, Nội dung) */}
+      {["MOI", "DANG_TD_HINH_THUC", "CHO_NOP_PHI_GD2", "DANG_TD_NOI_DUNG"].includes(app.status) && (
+        <button 
+          onClick={() => navigate(`/examiner/review/sang-che/${id}/reject`, { state: { appData: app } })}
+          className="px-4 py-2 bg-[#DC3545] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#bb2d3b]"
+        >
+          <XCircle size={14} /> Từ chối đơn
+        </button>
+      )}
+    </div>
+    
+  </div>
+</div>
+       </div>
+      
   );
 };
 
