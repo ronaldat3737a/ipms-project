@@ -6,9 +6,7 @@ import {
 } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
-// SỬA LỖI BUILD VERCEL: Dùng CDN ổn định cho PDF.js worker
-import * as pdfjsLib from "pdfjs-dist";
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.min.js`;
+import { PDFDocument } from 'pdf-lib';
 
 const Step3_Attachments = () => {
   const navigate = useNavigate();
@@ -35,50 +33,49 @@ const Step3_Attachments = () => {
    * LOGIC QUAN TRỌNG: Lưu file gốc vào Context
    */
   const handleFileChange = async (e, category, docType) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    let pageCount = 0;
+  let pageCount = 0;
 
-    // 1. Tính số trang nếu là Bản mô tả (giữ nguyên logic cũ)
-    if (docType === "BAN_MO_TA" && file.type === "application/pdf") {
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        pageCount = pdf.numPages;
-      } catch (error) {
-        console.error("Không thể đọc số trang PDF:", error);
-      }
+  // 1. Tính số trang nếu là Bản mô tả - DÙNG PDF-LIB
+  if (docType === "BAN_MO_TA" && file.type === "application/pdf") {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(arrayBuffer);
+      pageCount = pdfDoc.getPageCount();
+      console.log("✅ Đếm được số trang:", pageCount);
+    } catch (error) {
+      console.error("Không thể đọc số trang PDF:", error);
     }
+  }
 
-    // 2. Tạo đối tượng đính kèm mới
-    const newAttachment = {
-      id: crypto.randomUUID(),
-      category: category,
-      docType: docType,
-      fileName: file.name,
-      fileSize: file.size,
-      extension: file.name.split('.').pop().toLowerCase(),
-      // THAY ĐỔI: Lưu trực tiếp đối tượng file để Step 6 có cái mà gửi
-      file: file, 
-      status: "HOAN_TAT"
-    };
-
-    const updatedAttachments = (formData?.attachments || []).filter(
-      a => a.docType !== docType
-    );
-
-    
-    const updatePayload = {
-      attachments: [...updatedAttachments, newAttachment]
-    };
-    
-    if (pageCount > 0) {
-      updatePayload.totalPages = pageCount;
-    }
-
-    updateFormData(updatePayload);
+  // 2. Tạo đối tượng đính kèm mới
+  const newAttachment = {
+    id: crypto.randomUUID(),
+    category: category,
+    docType: docType,
+    fileName: file.name,
+    fileSize: file.size,
+    extension: file.name.split('.').pop().toLowerCase(),
+    file: file, 
+    status: "HOAN_TAT"
   };
+
+  const updatedAttachments = (formData?.attachments || []).filter(
+    a => a.docType !== docType
+  );
+
+  const updatePayload = {
+    attachments: [...updatedAttachments, newAttachment]
+  };
+  
+  if (pageCount > 0) {
+    updatePayload.totalPages = pageCount;
+  }
+
+  updateFormData(updatePayload);
+};
 
   const removeFile = (docType) => {
     const filtered = formData.attachments.filter(a => a.docType !== docType);
