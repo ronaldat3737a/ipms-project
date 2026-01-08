@@ -404,24 +404,25 @@ const ApplicationReview = () => {
         </>
       )}
 
-      {/* 4. GIAI ĐOẠN CẤP BẰNG */}
-      {app.status === "CAP_VAN_BANG" && (
-        <>
-          <button className="px-4 py-2 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 shadow-lg shadow-green-100">
-            <Download size={14} /> Tải văn bằng điện tử
-          </button>
-          <button className="px-4 py-2 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-md flex items-center gap-2">
-            <Eye size={14} /> Xem quyết định
-          </button>
-        </>
-      )}
+      {/* 1. GIAI ĐOẠN ĐÃ CẤP VĂN BẰNG (Trạng thái của bạn hiện tại) */}
+  {app.status === "DA_CAP_VAN_BANG" && (
+    <button 
+      onClick={() => navigate(`/examiner/patent/${id}/certificate`)} 
+      className="px-6 py-2.5 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 shadow-lg shadow-green-100 hover:bg-[#157347] transition-all"
+    >
+      <Award size={16} /> XEM VĂN BẰNG ĐIỆN TỬ
+    </button>
+  )}
 
-      {/* 5. GIAI ĐOẠN TỪ CHỐI */}
-      {app.status === "TU_CHOI_DON" && (
-        <button onClick={() => navigate(`/examiner/review/sang-che/${id}/reject-reason`)} className="px-4 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-md flex items-center gap-2">
-          <Search size={14} /> Xem lý do từ chối
-        </button>
-      )}
+      {/* Thay đổi nút ở dòng 363 (trong file cũ của bạn) */}
+{app.status === "TU_CHOI_DON" && (
+  <button 
+    onClick={() => navigate(`/examiner/review/sang-che/${id}/reject-reason`, { state: { appData: app } })} 
+    className="px-4 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-md flex items-center gap-2"
+  >
+    <Search size={14} /> Xem lý do từ chối
+  </button>
+)}
 
       {/* NÚT TỪ CHỐI CHUNG (Dùng cho Hình thức, Chờ phí, Nội dung) */}
       {["MOI", "DANG_TD_HINH_THUC", "CHO_NOP_PHI_GD2", "DANG_TD_NOI_DUNG"].includes(app.status) && (

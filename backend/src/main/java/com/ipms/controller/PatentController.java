@@ -4,6 +4,7 @@ package com.ipms.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ipms.dto.PatentSubmissionDTO;
 import com.ipms.entity.Application;
+import com.ipms.entity.enums.AppStatus;
 import com.ipms.service.PatentService;
 import lombok.RequiredArgsConstructor;
 
@@ -13,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.ipms.repository.ReviewHistoryRepository;
+
 // Import cho xử lý File và Path (Java chuẩn)
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,6 +24,7 @@ import java.net.MalformedURLException;
 // Import cho Spring Framework (Xử lý Resource và Header)
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -41,6 +45,19 @@ import java.util.UUID;
 public class PatentController {
 
     private final PatentService patentService;
+    private final ReviewHistoryRepository reviewHistoryRepository;
+
+    @GetMapping("/{id}/rejection-detail")
+    public ResponseEntity<?> getRejectionDetail(@PathVariable UUID id) {
+        // Bây giờ biến reviewHistoryRepository đã có thể sử dụng được
+        return reviewHistoryRepository.findFirstByApplicationIdAndStatusToOrderByReviewDateDesc(id, AppStatus.TU_CHOI_DON)
+            .map(history -> ResponseEntity.ok(Map.of(
+                "reason", history.getNote() != null ? history.getNote() : "Không có lý do chi tiết",
+                "date", history.getReviewDate()
+            )))
+            .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "Không tìm thấy dữ liệu từ chối cho hồ sơ này.")));
+    }
 
     // --- 1. CHỨC NĂNG DÀNH CHO NGƯỜI NỘP ĐƠN (APPLICANT) ---
     
@@ -102,5 +119,6 @@ public class PatentController {
         
         return ResponseEntity.ok(updatedApp);
     }
+
 
 }
