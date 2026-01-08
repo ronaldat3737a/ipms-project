@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ChevronLeft, Download, ChevronDown, Info, Users, FileText, 
-  Layers, History, CreditCard, CheckCircle2 
+  Layers, History, CreditCard, CheckCircle2, Award, 
+  Search, XCircle, AlertCircle, Calendar, Eye // Đã thêm XCircle và các icon cần thiết
 } from "lucide-react";
 
 const PatentDetail = () => {
@@ -269,6 +270,57 @@ const PatentDetail = () => {
           </table>
         </section>
       </main>
+      {/* Thêm đoạn này vào cuối file, trước dấu đóng </div> cuối cùng */}
+
+{app.status === "DA_CAP_VAN_BANG" && (
+  <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-green-200 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-50">
+    <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center animate-bounce">
+          <Award size={24} />
+        </div>
+        <div>
+          <p className="text-[10px] font-black text-green-600 uppercase tracking-widest">Chúc mừng!</p>
+          <p className="text-sm font-bold text-slate-700">Hồ sơ đã được cấp văn bằng bảo hộ chính thức.</p>
+        </div>
+      </div>
+      
+      <button 
+        onClick={() => navigate(`/applicant/patent/${id}/certificate`)}
+        className="px-8 py-3 bg-green-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95"
+      >
+        <Award size={20} /> XEM VĂN BẰNG ĐIỆN TỬ
+      </button>
+    </div>
+  </footer>
+)}
+
+{/* --- FOOTER ACTIONS BAR CHO NGƯỜI NỘP ĐƠN --- */}
+{app.status === "TU_CHOI_DON" && (
+  <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-red-200 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] z-50">
+    <div className="max-w-6xl mx-auto flex items-center justify-between">
+      
+      {/* Bên trái: Thông báo ngắn */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
+          <XCircle size={24} />
+        </div>
+        <div>
+          <p className="text-[10px] font-black text-red-600 uppercase tracking-widest">Thông báo</p>
+          <p className="text-sm font-bold text-slate-700">Rất tiếc, hồ sơ của bạn đã bị từ chối cấp văn bằng.</p>
+        </div>
+      </div>
+      
+      {/* Bên phải: Nút bấm chuyển hướng giống Examiner */}
+      <button 
+        onClick={() => navigate(`/applicant/patent/${id}/reject-reason`)}
+        className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg"
+      >
+        <Search size={18} /> XEM LÝ DO TỪ CHỐI
+      </button>
+    </div>
+  </footer>
+)}
     </div>
   );
 };

@@ -3,72 +3,60 @@ import {
   Search, Bell, Plus, Eye, Edit3, CreditCard,
   ChevronLeft, ChevronRight, LayoutDashboard,
   FileText, Bookmark, PenTool, FileStack, LogOut,
-  AlertCircle
+  AlertCircle, XCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const PatentList = () => {
   const navigate = useNavigate();
   
-  // --- STATES ---
-  const [patents, setPatents] = useState([]); // Dữ liệu gốc từ DB
+  const [patents, setPatents] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // States cho Filters
   const [typeFilter, setTypeFilter] = useState("Tất cả");
   const [statusFilter, setStatusFilter] = useState("Tất cả");
 
-  // --- CẬP NHẬT ÁNH XẠ TRẠNG THÁI (GĐ 2 & GĐ 3) ---
+  // --- CẬP NHẬT ÁNH XẠ TRẠNG THÁI (THÊM TỪ CHỐI, XOÁ MỚI TẠO KHỎI UI) ---
   const getStatusUI = (status) => {
     switch (status) {
-      case "MOI":
-        return { label: "Mới tạo", color: "bg-gray-100 text-gray-600 border-gray-200" };
       case "DANG_TD_HINH_THUC":
         return { label: "Đang TĐ Hình thức", color: "bg-blue-50 text-blue-600 border-blue-100" };
-      
-      // Đổi sang Giai đoạn 2
       case "CHO_NOP_PHI_GD2": 
         return { label: "Chờ nộp lệ phí GĐ 2", color: "bg-purple-50 text-purple-600 border-purple-100", fee: true };
-      
       case "DANG_TD_NOI_DUNG":
         return { label: "Đang TĐ Nội dung", color: "bg-indigo-50 text-indigo-600 border-indigo-100" };
-      
-      // Đổi sang Giai đoạn 3 (Trước khi cấp bằng)
       case "CHO_NOP_PHI_GD3":
         return { label: "Chờ nộp lệ phí GĐ 3", color: "bg-pink-50 text-pink-600 border-pink-100", fee: true };
-      
+      case "CHO_SUA_DOI_HINH_THUC":
+        return { label: "Sửa đổi hình thức", color: "bg-orange-50 text-orange-600 border-orange-100", warning: true };
+      case "CHO_SUA_DOI_NOI_DUNG":
+        return { label: "Sửa đổi nội dung", color: "bg-amber-50 text-amber-600 border-amber-100", warning: true };
+      case "TU_CHOI_DON":
+        return { label: "Từ chối", color: "bg-red-50 text-red-600 border-red-100" };
       case "DA_CAP_VAN_BANG":
         return { label: "Đã cấp văn bằng", color: "bg-green-50 text-green-600 border-green-100" };
       default:
+        // Các trạng thái khác (như MOI) vẫn map vào "Đang xử lý" để không lỗi logic
         return { label: "Đang xử lý", color: "bg-gray-50 text-gray-500 border-gray-100" };
     }
   };
 
-  // --- SỬA LOGIC FETCH DỮ LIỆU ---
   useEffect(() => {
     const fetchPatents = async () => {
       try {
         setLoading(true);
-        // Lưu ý: Đảm bảo Backend đang chạy tại port 8080
         const response = await fetch("http://localhost:8080/api/patents/all");
-        
-        if (!response.ok) {
-           throw new Error(`Lỗi Server: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`Lỗi Server: ${response.status}`);
         const data = await response.json();
-        
-        // Kiểm tra nếu data là mảng thì mới set
         if (Array.isArray(data)) {
           setPatents(data);
         } else {
-          console.error("Dữ liệu trả về không phải mảng:", data);
           setPatents([]);
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        setError("Không thể kết nối đến máy chủ. Hãy kiểm tra Backend và CORS.");
+        setError("Không thể kết nối đến máy chủ.");
       } finally {
         setLoading(false);
       }
@@ -76,10 +64,15 @@ const PatentList = () => {
     fetchPatents();
   }, []);
 
-  // --- LOGIC LỌC DỮ LIỆU ---
+  // --- LOGIC LỌC KẾT HỢP NHUẦN NHUYỄN ---
   const filteredPatents = patents.filter((item) => {
+    // 1. Lọc theo Loại (Sáng chế / GPHI)
     const matchType = typeFilter === "Tất cả" || item.appType === typeFilter;
-    const matchStatus = statusFilter === "Tất cả" || getStatusUI(item.status).label === statusFilter;
+    
+    // 2. Lọc theo Trạng thái (Dựa trên Label của getStatusUI)
+    const ui = getStatusUI(item.status);
+    const matchStatus = statusFilter === "Tất cả" || ui.label === statusFilter;
+    
     return matchType && matchStatus;
   });
 
@@ -87,7 +80,7 @@ const PatentList = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
-      {/* --- SIDEBAR --- */}
+      {/* --- SIDEBAR (Giữ nguyên) --- */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0">
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -110,10 +103,9 @@ const PatentList = () => {
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT --- */}
       <main className="flex-grow flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8">
-          <div className="flex items-center gap-4 text-sm font-medium text-gray-500">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 text-sm">
+          <div className="flex items-center gap-4 font-medium text-gray-500">
             <span>Sáng chế</span>
             <button 
               onClick={() => navigate("/applicant/patent/step1")}
@@ -122,6 +114,7 @@ const PatentList = () => {
               <Plus size={16} /> Nộp đơn mới
             </button>
           </div>
+          {/* Avatar Area */}
           <div className="flex items-center gap-6">
             <Bell size={20} className="text-gray-400 cursor-pointer" />
             <div className="flex items-center gap-3 border-l pl-6 border-gray-100">
@@ -140,7 +133,7 @@ const PatentList = () => {
           {/* Filters Area */}
           <div className="space-y-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-4">
-              <span className="text-sm font-bold text-gray-400 w-24 uppercase">Loại:</span>
+              <span className="text-sm font-bold text-gray-400 w-24 uppercase tracking-tighter">Loại:</span>
               <div className="flex gap-2">
                 {["Tất cả", "Sáng chế", "Giải pháp hữu ích"].map(t => (
                   <FilterButton key={t} label={t} active={typeFilter === t} onClick={() => setTypeFilter(t)} />
@@ -148,9 +141,9 @@ const PatentList = () => {
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <span className="text-sm font-bold text-gray-400 w-24 uppercase mt-2">Trạng thái:</span>
+              <span className="text-sm font-bold text-gray-400 w-24 uppercase mt-2 tracking-tighter">Trạng thái:</span>
               <div className="flex flex-wrap gap-2 flex-1">
-                {["Tất cả", "Mới tạo", "Đang TĐ Hình thức", "Chờ nộp lệ phí GĐ 2", "Đang TĐ Nội dung", "Chờ nộp lệ phí GĐ 3", "Đã cấp văn bằng"].map(s => (
+                {["Tất cả", "Đang TĐ Hình thức", "Sửa đổi hình thức","Chờ nộp lệ phí GĐ 2", "Đang TĐ Nội dung", "Sửa đổi nội dung", "Chờ nộp lệ phí GĐ 3", "Từ chối", "Đã cấp văn bằng"].map(s => (
                   <FilterButton key={s} label={s} active={statusFilter === s} onClick={() => setStatusFilter(s)} />
                 ))}
               </div>
@@ -180,42 +173,43 @@ const PatentList = () => {
                   {filteredPatents.length > 0 ? filteredPatents.map((item) => {
                     const ui = getStatusUI(item.status);
                     return (
-                      <tr key={item.id} className="hover:bg-gray-50 transition group">
-                        <td 
-  className="px-6 py-4 text-sm font-bold text-blue-500 cursor-pointer hover:underline"
-  onClick={() => navigate(`/applicant/patent/view/${item.id}`)} // Thêm dòng này
->
-  {item.appNo || "ĐANG CẤP"}
-</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`text-[10px] font-black ${item.appType === "Giải pháp hữu ích" ? "text-red-400" : "text-green-400"}`}>
-                            {item.appType === "Giải pháp hữu ích" ? "GPHI" : "SÁNGC"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-700 max-w-xs truncate">
-                          {item.patentName || "Chưa có tên"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 font-medium">
-                          {new Date(item.createdAt).toLocaleDateString("vi-VN")}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 w-fit ${ui.color}`}>
-                            {ui.warning && <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>}
-                            {ui.label}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-center gap-3 text-gray-400">
-                            <Eye size={16} className="cursor-pointer hover:text-blue-500" onClick={() => navigate(`/applicant/patent/view/${item.id}`)} />
-                            {ui.warning && <Edit3 size={16} className="cursor-pointer hover:text-orange-500" />}
-                            {ui.fee && <CreditCard size={16} className="cursor-pointer hover:text-blue-600" />}
-                          </div>
-                        </td>
-                      </tr>
+                      <React.Fragment key={item.id}>
+                        <tr className={`hover:bg-gray-50 transition group ${ui.rejected ? 'bg-red-50/20' : ''}`}>
+                          <td 
+                            className="px-6 py-4 text-sm font-bold text-blue-500 cursor-pointer hover:underline"
+                            onClick={() => navigate(`/applicant/patent/view/${item.id}`)}
+                          >
+                            {item.appNo || "ĐANG CẤP"}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`text-[10px] font-black ${item.appType === "Giải pháp hữu ích" ? "text-orange-500" : "text-emerald-500"}`}>
+                              {item.appType === "Giải pháp hữu ích" ? "GPHI" : "SÁNGC"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-700 max-w-xs truncate">
+                            {item.patentName || "Chưa có tên"}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500 font-medium">
+                            {new Date(item.createdAt).toLocaleDateString("vi-VN")}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 w-fit ${ui.color}`}>
+                              {ui.warning && <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>}
+                              {ui.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-center gap-3 text-gray-400">
+                              <Eye size={16} className="cursor-pointer hover:text-blue-500" onClick={() => navigate(`/applicant/patent/view/${item.id}`)} />
+                              {ui.fee && <CreditCard size={16} className="cursor-pointer hover:text-blue-600" />}
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>
                     );
                   }) : (
                     <tr>
-                      <td colSpan="6" className="px-6 py-10 text-center text-gray-400 italic">Không có dữ liệu phù hợp</td>
+                      <td colSpan="6" className="px-6 py-10 text-center text-gray-400 italic font-medium">Không có dữ liệu phù hợp</td>
                     </tr>
                   )}
                 </tbody>
@@ -228,7 +222,7 @@ const PatentList = () => {
   );
 };
 
-// Sub-components
+// Sub-components (Giữ nguyên giao diện 100%)
 const NavItem = ({ icon, label, active = false, onClick }) => (
   <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${active ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"}`}>
     {icon}
