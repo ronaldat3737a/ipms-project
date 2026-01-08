@@ -59,6 +59,19 @@ public class PatentController {
                 .body(Map.of("message", "Không tìm thấy dữ liệu từ chối cho hồ sơ này.")));
     }
 
+    @GetMapping("/{id}/correction-detail")
+    public ResponseEntity<?> getCorrectionDetail(@PathVariable UUID id) {
+        // Tìm bản ghi lịch sử mới nhất có trạng thái "Chờ sửa đổi" (Hình thức hoặc Nội dung)
+        return reviewHistoryRepository.findFirstByApplicationIdAndNoteIsNotNullOrderByReviewDateDesc(id)
+            .map(history -> ResponseEntity.ok(Map.of(
+                "note", history.getNote(),
+                "date", history.getReviewDate(),
+                "status", history.getStatusTo()
+            )))
+            .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "Không tìm thấy yêu cầu sửa đổi cho hồ sơ này.")));
+    }
+
     // --- 1. CHỨC NĂNG DÀNH CHO NGƯỜI NỘP ĐƠN (APPLICANT) ---
     
     // ENDPOINT MỚI: BƯỚC 1 - TẠO ĐƠN NHÁP VỚI TRẠNG THÁI "MOI"
@@ -82,6 +95,17 @@ public class PatentController {
     public ResponseEntity<Application> submitApplication(@PathVariable UUID id) {
         Application submittedApp = patentService.submitApplication(id);
         return ResponseEntity.ok(submittedApp);
+    }
+
+    // ENDPOINT: CẬP NHẬT LẠI HỒ SƠ SAU KHI SỬA ĐỔI
+    @PutMapping(value = "/{id}/resubmit", consumes = { MediaType.APPLICATION_JSON_VALUE })
+    public ResponseEntity<Application> resubmitApplication(
+            @PathVariable UUID id,
+            @RequestBody PatentSubmissionDTO dto) {
+
+        // Gọi service xử lý logic: Tăng bộ đếm, ghi đè dữ liệu, chuyển trạng thái
+        Application resubmittedApp = patentService.resubmitApplication(id, dto);
+        return ResponseEntity.ok(resubmittedApp);
     }
 
 

@@ -53,6 +53,12 @@ public class Application {
     @Column(name = "solution_detail", length = 100, nullable = false)
     private String solutionDetail;
 
+    @Column(name = "formal_revision_count")
+    private Integer formalRevisionCount = 0;
+
+    @Column(name = "substantive_revision_count")
+    private Integer substantiveRevisionCount = 0;
+
     // --- CẬP NHẬT ENUM SOLUTION_TYPE ---
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

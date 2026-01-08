@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Thêm useEffect vào đây
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ChevronLeft, 
@@ -14,15 +14,54 @@ const CorrectionRequest = () => {
   const [content, setContent] = useState("");
   const maxLength = 500;
 
-  const handleSend = () => {
-    if (content.trim() === "") {
-      alert("Vui lòng nhập nội dung yêu cầu!");
-      return;
+  // Thêm state để lưu thông tin đơn
+const [app, setApp] = useState(null);
+
+// Lấy thông tin đơn khi load trang
+useEffect(() => {
+  fetch(`http://localhost:8080/api/patents/${id}`)
+    .then(res => res.json())
+    .then(data => setApp(data));
+}, [id]);
+
+const handleSend = async () => {
+  if (content.trim() === "") {
+    alert("Vui lòng nhập nội dung yêu cầu!");
+    return;
+  }
+
+  // LOGIC QUAN TRỌNG: Xác định trạng thái sửa đổi dựa trên giai đoạn hiện tại
+  let targetStatus = "";
+  if (app.status === "DANG_TD_HINH_THUC") {
+    targetStatus = "CHO_SUA_DOI_HINH_THUC";
+  } else if (app.status === "DANG_TD_NOI_DUNG") {
+    targetStatus = "CHO_SUA_DOI_NOI_DUNG";
+  } else {
+    targetStatus = app.status; // Giữ nguyên nếu không thuộc 2 giai đoạn trên
+  }
+
+  try {
+    const response = await fetch(`http://localhost:8080/api/patents/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: targetStatus,
+        note: content // Nội dung bạn nhập trong textarea
+      }),
+    });
+
+    if (response.ok) {
+      alert("Yêu cầu sửa đổi đã được gửi thành công!");
+      navigate("/examiner-dashboard"); // Chuyển về dashboard chuyên viên
+    } else {
+      const errorData = await response.json();
+      alert("Lỗi: " + errorData.message);
     }
-    // Logic gửi dữ liệu về Backend tại đây
-    alert("Yêu cầu sửa đổi đã được gửi thành công!");
-    navigate("/examiner-dashboard");
-  };
+  } catch (error) {
+    console.error("Lỗi kết nối API:", error);
+    alert("Không thể kết nối đến máy chủ!");
+  }
+};
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">

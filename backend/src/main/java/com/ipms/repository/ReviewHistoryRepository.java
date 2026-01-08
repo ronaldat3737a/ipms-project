@@ -11,6 +11,7 @@ import java.util.UUID;
 public interface ReviewHistoryRepository extends JpaRepository<ReviewHistory, UUID> {
     // Lấy lịch sử theo Application ID, sắp xếp mới nhất lên đầu
     List<ReviewHistory> findByApplicationIdOrderByReviewDateDesc(UUID applicationId);
+    Optional<ReviewHistory> findFirstByApplicationIdAndNoteIsNotNullOrderByReviewDateDesc(UUID applicationId);
 
     // Tìm bản ghi từ chối mới nhất của hồ sơ
     Optional<ReviewHistory> findFirstByApplicationIdAndStatusToOrderByReviewDateDesc(

@@ -36,6 +36,7 @@ import RejectReasonView from "./pages/Examiner/Patent/RejectReasonView";
 import PatentDetail from "./pages/Applicant/Patent/PatentDetail";
 import Phase2Payment from "./pages/Applicant/Patent/Phase2Payment";
 import Phase3Payment from "./pages/Applicant/Patent/Phase3Payment";
+import PatentRevision from "./pages/Applicant/Patent/PatentRevision";
 import ApplicantRejectReasonView from "./pages/Applicant/Patent/ApplicantRejectReasonView";
 
 import PatentCertificateView from "./pages/Examiner/Patent/PatentCertificateView";
@@ -119,7 +120,7 @@ function App() {
           element={<PatentCertificateView isPublic={false} />} 
         />
         <Route path="/applicant/patent/:id/reject-reason" element={<ApplicantRejectReasonView />} />
-
+        <Route path="/applicant/patent/revision/:id" element={<PatentRevision />} />
       </Routes>
     </Router>
   );

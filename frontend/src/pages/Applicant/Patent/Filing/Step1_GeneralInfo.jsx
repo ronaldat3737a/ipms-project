@@ -29,8 +29,9 @@ const Step1_GeneralInfo = () => {
   };
 
   // Tính số từ cho phần tóm tắt
-  const wordCount = formData.summary.trim()
-    ? formData.summary.trim().split(/\s+/).length
+  const summaryText = formData?.summary || "";
+  const wordCount = summaryText.trim()
+    ? summaryText.trim().split(/\s+/).length
     : 0;
 
   // Lấy thông tin người dùng từ localStorage đã lưu khi đăng nhập

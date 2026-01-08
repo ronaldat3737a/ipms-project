@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { 
   ChevronLeft, Download, ChevronDown, Info, Users, FileText, 
   Layers, History, CreditCard, CheckCircle2, Award, 
-  Search, XCircle, AlertCircle, Calendar, Eye // Đã thêm XCircle và các icon cần thiết
+  Search, XCircle, AlertCircle, Calendar, Eye, Edit3  // Đã thêm XCircle và các icon cần thiết
 } from "lucide-react";
 
 const PatentDetail = () => {
@@ -317,6 +317,32 @@ const PatentDetail = () => {
         className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg"
       >
         <Search size={18} /> XEM LÝ DO TỪ CHỐI
+      </button>
+    </div>
+  </footer>
+)}
+
+{/* FOOTER CẢNH BÁO VÀ NÚT SỬA HỒ SƠ */}
+{(app.status === "CHO_SUA_DOI_HINH_THUC" || app.status === "CHO_SUA_DOI_NOI_DUNG") && (
+  <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-orange-200 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] z-50">
+    <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center animate-bounce">
+          <AlertCircle size={28} />
+        </div>
+        <div>
+          <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em]">Thông báo sửa đổi</p>
+          <p className="text-sm font-bold text-slate-700">
+            Chuyên viên yêu cầu chỉnh sửa {app.status === "CHO_SUA_DOI_HINH_THUC" ? "Hình thức" : "Nội dung"} hồ sơ.
+          </p>
+        </div>
+      </div>
+      
+      <button 
+        onClick={() => navigate(`/applicant/patent/revision/${id}`)}
+        className="px-8 py-4 bg-orange-500 text-white rounded-2xl font-black text-sm flex items-center gap-3 hover:bg-orange-600 shadow-xl shadow-orange-100 transition-all active:scale-95 uppercase tracking-wide"
+      >
+        <Edit3 size={20} /> Bắt đầu chỉnh sửa hồ sơ
       </button>
     </div>
   </footer>
