@@ -64,6 +64,7 @@ const PatentList = () => {
     fetchPatents();
   }, []);
 
+
   // --- LOGIC LỌC KẾT HỢP NHUẦN NHUYỄN ---
   const filteredPatents = patents.filter((item) => {
     // 1. Lọc theo Loại (Sáng chế / GPHI)
@@ -96,7 +97,8 @@ const PatentList = () => {
           <NavItem icon={<FileStack size={20} />} label="Hồ sơ của tôi" />
         </nav>
         <div className="p-4 border-t border-gray-100">
-          <button className="flex items-center gap-3 text-gray-500 hover:text-red-500 w-full px-4 py-3 transition">
+          <button onClick={() => navigate("/")} 
+          className="flex items-center gap-3 text-gray-500 hover:text-red-500 w-full px-4 py-3 transition">
             <LogOut size={20} />
             <span className="font-bold text-sm">Đăng xuất</span>
           </button>
