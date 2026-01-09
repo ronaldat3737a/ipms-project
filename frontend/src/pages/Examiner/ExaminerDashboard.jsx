@@ -113,18 +113,16 @@ const ExaminerDashboard = () => {
             onClick={() => navigate("/examiner-dashboard")}
           />
           
-          {/* SỬA LẠI LOGIC TẠI ĐÂY: Điều hướng về trang DANH SÁCH (Patent Review List) */}
           <SidebarItem
             icon={<FileText size={18} />}
             label="TĐ Sáng chế"
-            onClick={() => navigate("/examiner/patents")}
+            onClick={() => navigate("/examiner/applications/sang-che")}
           />
           
-          {/* SỬA LẠI LOGIC TẠI ĐÂY: Điều hướng về trang DANH SÁCH (Utility Solution Review List) */}
           <SidebarItem
             icon={<Lightbulb size={18} />}
             label="TĐ Giải pháp hữu ích"
-            onClick={() => navigate("/examiner/utility-solutions")}
+            onClick={() => navigate("/examiner/applications/giai-phap-huu-ich")}
           />
 
           <SidebarItem icon={<Package size={18} />} label="TĐ Kiểu dáng công nghiệp" />

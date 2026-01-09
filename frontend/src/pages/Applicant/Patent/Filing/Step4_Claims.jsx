@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { 
   X, CheckCircle2, ChevronLeft, ChevronRight, 
   Plus, ChevronDown, AlertCircle
@@ -9,6 +9,7 @@ import { useFilingData } from "./FilingContext";
 // 1. Thêm prop isRevision
 const Step4_Claims = ({ isRevision = false }) => {
   const navigate = useNavigate();
+  const { type } = useParams(); // Get type from URL
   
   const { formData, updateFormData, clearFormData } = useFilingData() || {
     formData: { claims: [] },
@@ -155,11 +156,11 @@ const Step4_Claims = ({ isRevision = false }) => {
       {/* Ẩn nút điều hướng khi đang sửa đơn */}
       {!isRevision && (
         <div className="flex justify-end gap-4 pt-10">
-          <button onClick={() => navigate("/applicant/patent/step3")} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm">
+          <button onClick={() => navigate(`/applicant/applications/${type}/filing/step3`)} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm">
             <ChevronLeft size={18} /> Quay lại
           </button>
           <button 
-            onClick={() => navigate("/applicant/patent/step5")} 
+            onClick={() => navigate(`/applicant/applications/${type}/filing/step5`)} 
             className="flex items-center gap-2 px-8 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition shadow-md"
           >
             Tiếp theo <ChevronRight size={18} />
@@ -190,7 +191,7 @@ const Step4_Claims = ({ isRevision = false }) => {
           onClick={() => {
             if (window.confirm("Hệ thống sẽ xóa toàn bộ dữ liệu... Bạn có chắc chắn muốn hủy bỏ không?")) {
               clearFormData();
-              navigate("/applicant/patent");
+              navigate(`/applicant/applications/${type}`);
             }
           }}
           className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium"

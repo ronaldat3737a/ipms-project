@@ -12,7 +12,6 @@ import PatentList from "./pages/Applicant/Patent/PatentList";
 // 3. Nhóm Người duyệt đơn (Examiner)
 import ExaminerDashboard from "./pages/Examiner/ExaminerDashboard";
 import PatentReviewList from "./pages/Examiner/Patent/PatentReviewList";
-import UtilityReviewList from "./pages/Examiner/Patent/UtilityReviewList";
 import ApplicationReview from "./pages/Examiner/Patent/ApplicationReview";
 
 // 4. Nhóm Nộp đơn (Filing)
@@ -50,8 +49,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* --- QUY TRÌNH NỘP ĐƠN (NESTED ROUTES) --- */}
-        <Route path="/applicant/patent/*" element={
+        {/* --- REFACTORED: QUY TRÌNH NỘP ĐƠN (sử dụng :type) --- */}
+        <Route path="/applicant/applications/:type/filing/*" element={
             <FilingProvider>
               <Routes>
                 <Route path="step1" element={<Step1_GeneralInfo />} />
@@ -60,67 +59,48 @@ function App() {
                 <Route path="step4" element={<Step4_Claims />} />
                 <Route path="step5" element={<Step5_Submission />} />
                 <Route path="step6" element={<Step6_FeePayment />} />
-                {/* Giữ payment-result ở đây nếu bạn muốn điều hướng nội bộ từ bước 6 sang (không qua VNPay) */}
                 <Route path="payment-result" element={<SuccessPage />} />
               </Routes>
             </FilingProvider>
         } />
 
-        {/* --- ĐÓN KẾT QUẢ VNPAY (QUAN TRỌNG NHẤT - PHẢI Ở ĐÂY) --- */}
-        {/* Link VNPay gọi về là /payment-result nên Route này phải nằm ở cấp cao nhất */}
+        {/* --- ĐÓN KẾT QUẢ VNPAY (Vẫn giữ ở cấp cao nhất) --- */}
         <Route path="/payment-result" element={<SuccessPage />} />
 
-        {/* --- DASHBOARD & LISTS (EXAMINER) --- */}
+        {/* --- EXAMINER --- */}
         <Route path="/examiner-dashboard" element={<ExaminerDashboard />} />
-        <Route path="/examiner/patents" element={<PatentReviewList />} />
-        <Route path="/examiner/utility-solutions" element={<UtilityReviewList />} />
         
+        {/* REFACTORED: Danh sách đơn chung cho Examiner */}
+        <Route path="/examiner/applications/:type" element={<PatentReviewList />} />
+        
+        {/* REFACTORED: Các route review chung */}
         <Route path="/examiner/review/:type/:id" element={<ApplicationReview />} />
-        <Route path="/examiner/substantive-review/sang-che/:id" element={<SubstantiveReview />} />
         <Route path="/examiner/review/:type/:id/accept" element={<AcceptConfirmation />} />
         <Route path="/examiner/review/:type/:id/reject" element={<RejectConfirmation />} />
         <Route path="/examiner/review/:type/:id/correction" element={<CorrectionRequest />} />
-
-        {/* GIAI ĐOẠN 2: THẨM ĐỊNH NỘI DUNG (MỚI BỔ SUNG) */}
-        <Route path="/examiner/substantive-review/sang-che/:id" element={<SubstantiveReview />} />
-
-        {/* 3 Dòng mới dưới đây để fix lỗi "No routes matched" */}  
-        <Route 
-          path="/examiner/substantive-review/sang-che/:id/grant" 
-          element={<AcceptConfirmation phase="substantive" />} 
-        />
-        <Route 
-          path="/examiner/substantive-review/sang-che/:id/reject" 
-          element={<RejectConfirmation phase="substantive" />} 
-        />
-        <Route 
-          path="/examiner/substantive-review/sang-che/:id/correction" 
-          element={<CorrectionRequest phase="substantive" />} 
-        />
-
-        {/* --- NGƯỜI NỘP ĐƠN --- */}
-        <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
-        <Route path="/applicant/patent" element={<PatentList />} />
-
-        <Route path="/applicant/patent/view/:id" element={<PatentDetail />} />
-        <Route path="/applicant/payment/phase2/:id" element={<Phase2Payment />} />
-        <Route path="/applicant/payment/phase3/:id" element={<Phase3Payment />} />
+        <Route path="/examiner/review/:type/:id/reject-reason" element={<RejectReasonView />} />
         
+        {/* REFACTORED: Thẩm định nội dung chung */}
+        <Route path="/examiner/substantive-review/:type/:id" element={<SubstantiveReview />} />
+        <Route path="/examiner/substantive-review/:type/:id/grant" element={<AcceptConfirmation phase="substantive" />} />
+        <Route path="/examiner/substantive-review/:type/:id/reject" element={<RejectConfirmation phase="substantive" />} />
+        <Route path="/examiner/substantive-review/:type/:id/correction" element={<CorrectionRequest phase="substantive" />} />
+        
+        {/* REFACTORED: Xem chứng chỉ */}
+        <Route path="/examiner/applications/:type/:id/certificate" element={<PatentCertificateView />} />
 
-        <Route 
-          path="/examiner/review/sang-che/:id/reject-reason" 
-          element={<RejectReasonView />} 
-        />
-        <Route 
-          path="/examiner/patent/:id/certificate" 
-          element={<PatentCertificateView />} 
-        />
-        <Route 
-          path="/applicant/patent/:id/certificate" 
-          element={<PatentCertificateView isPublic={false} />} 
-        />
-        <Route path="/applicant/patent/:id/reject-reason" element={<ApplicantRejectReasonView />} />
-        <Route path="/applicant/patent/revision/:id" element={<PatentRevision />} />
+        {/* --- APPLICANT --- */}
+        <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
+        
+        {/* REFACTORED: Các route chung cho Applicant */}
+        <Route path="/applicant/applications/:type" element={<PatentList />} />
+        <Route path="/applicant/applications/:type/view/:id" element={<PatentDetail />} />
+        <Route path="/applicant/applications/:type/revision/:id" element={<PatentRevision />} />
+        <Route path="/applicant/applications/:type/payment/phase2/:id" element={<Phase2Payment />} />
+        <Route path="/applicant/applications/:type/payment/phase3/:id" element={<Phase3Payment />} />
+        <Route path="/applicant/applications/:type/:id/reject-reason" element={<ApplicantRejectReasonView />} />
+        <Route path="/applicant/applications/:type/:id/certificate" element={<PatentCertificateView isPublic={false} />} />
+        
       </Routes>
     </Router>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
   X,
@@ -16,6 +16,7 @@ import { useFilingData } from "./FilingContext";
 
 const Step6_FeePayment = () => {
   const navigate = useNavigate();
+  const { type } = useParams(); // Get type from URL
   const context = useFilingData();
   const formData = context?.formData || {};
   const updateFormData = context?.updateFormData || (() => {});
@@ -52,7 +53,7 @@ const Step6_FeePayment = () => {
     if (updateFormData && totalAmount !== formData?.totalFee) {
       updateFormData({ totalFee: totalAmount });
     }
-  }, [totalAmount]);
+  }, [totalAmount, formData.totalFee, updateFormData]);
 
   const formatVND = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -146,7 +147,7 @@ const Step6_FeePayment = () => {
       {/* HEADER (Giữ nguyên) */}
       <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white sticky top-0 z-10">
         <button 
-          onClick={() => window.confirm("Hủy bỏ nộp đơn?") && (clearFormData(), navigate("/applicant/patent"))}
+          onClick={() => window.confirm("Hủy bỏ nộp đơn?") && (clearFormData(), navigate(`/applicant/applications/${type}`))}
           className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium"
         >
           <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center"><X size={14} /></div>
@@ -259,7 +260,7 @@ const Step6_FeePayment = () => {
             {/* ĐIỀU HƯỚNG */}
             <div className="flex justify-end gap-4 pt-10 border-t border-gray-50">
               <button 
-                onClick={() => navigate("/applicant/patent/step5")} 
+                onClick={() => navigate(`/applicant/applications/${type}/filing/step5`)} 
                 className="px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition text-sm"
               >
                 Quay lại xác nhận

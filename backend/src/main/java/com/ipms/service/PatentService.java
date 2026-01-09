@@ -271,53 +271,63 @@ public class PatentService {
     }
 
     private void saveClaims(List<ClaimDTO> claimDtos, Application app) {
-    if (claimDtos == null || claimDtos.isEmpty()) return;
-    
-    Map<Integer, ApplicationClaim> claimMap = new HashMap<>();
+        // 1. XÓA CLAIM CŨ: Luôn xóa các claim cũ trước khi thêm mới để đảm bảo không bị trùng.
+        claimRepository.deleteByApplicationId(app.getId());
+        claimRepository.flush(); // Quan trọng: Đẩy lệnh xóa xuống DB ngay
 
-    // Bước 1: Lưu toàn bộ các điểm để có ID UUID
-    for (int i = 0; i < claimDtos.size(); i++) {
-        ClaimDTO cDto = claimDtos.get(i);
-        // SỬA: Đảm bảo idx luôn nhất quán (ưu tiên orderIndex từ DTO, nếu ko có thì dùng số thứ tự i+1)
-        Integer idx = (cDto.getOrderIndex() != null) ? cDto.getOrderIndex() : (i + 1);
+        // Xóa collection trong entity để Hibernate context được đồng bộ
+        if (app.getClaims() != null) {
+            app.getClaims().clear();
+        } else {
+            app.setClaims(new ArrayList<>());
+        }
 
-        ApplicationClaim claim = ApplicationClaim.builder()
-                .application(app)
-                .orderIndex(idx)
-                .type("Độc lập".equalsIgnoreCase(cDto.getType()) ? ClaimType.DOK_LAP : ClaimType.PHU_THUOC)
-                .content(cDto.getContent())
-                .status(ClaimStatus.HOP_LE)
-                .build();
-        
-        app.getClaims().add(claim); // Quản lý quan hệ 2 chiều
-        claim = claimRepository.save(claim);
-        claimMap.put(idx, claim);
-    }
+        // Nếu DTO không có claim mới thì dừng lại ở đây.
+        if (claimDtos == null || claimDtos.isEmpty()) {
+            return;
+        }
 
-    // Đẩy dữ liệu xuống DB để sinh ID UUID cho tất cả các bản ghi
-    claimRepository.flush(); 
+        // 2. TẠO CLAIM MỚI (CHƯA LƯU)
+        Map<Integer, ApplicationClaim> claimMapByOrderIndex = new HashMap<>();
+        List<ApplicationClaim> newClaims = new ArrayList<>();
 
-    // Bước 2: Cập nhật tham chiếu cha-con
-    for (int i = 0; i < claimDtos.size(); i++) {
-        ClaimDTO cDto = claimDtos.get(i);
-        // SỬA: Phải dùng lại cùng logic tính idx như ở Bước 1
-        Integer currentIdx = (cDto.getOrderIndex() != null) ? cDto.getOrderIndex() : (i + 1);
-        Integer parentIdx = cDto.getParentOrderIndex();
+        for (int i = 0; i < claimDtos.size(); i++) {
+            ClaimDTO cDto = claimDtos.get(i);
+            Integer idx = (cDto.getOrderIndex() != null) ? cDto.getOrderIndex() : (i + 1);
 
-        // Kiểm tra xem điểm này có điểm cha không
-        if (parentIdx != null && claimMap.containsKey(parentIdx)) {
-            ApplicationClaim currentClaim = claimMap.get(currentIdx);
-            ApplicationClaim parentClaim = claimMap.get(parentIdx);
-            
-            if (currentClaim != null && parentClaim != null) {
-                currentClaim.setParentClaim(parentClaim);
-                claimRepository.save(currentClaim);
+            ApplicationClaim claim = ApplicationClaim.builder()
+                    .application(app)
+                    .orderIndex(idx)
+                    .type("Độc lập".equalsIgnoreCase(cDto.getType()) ? ClaimType.DOK_LAP : ClaimType.PHU_THUOC)
+                    .content(cDto.getContent())
+                    .status(ClaimStatus.HOP_LE)
+                    .build();
+
+            newClaims.add(claim);
+            claimMapByOrderIndex.put(idx, claim);
+        }
+
+        // 3. SET QUAN HỆ CHA-CON (TRƯỚC KHI LƯU)
+        for (int i = 0; i < claimDtos.size(); i++) {
+            ClaimDTO cDto = claimDtos.get(i);
+            Integer currentIdx = (cDto.getOrderIndex() != null) ? cDto.getOrderIndex() : (i + 1);
+            Integer parentIdx = cDto.getParentOrderIndex();
+
+            if (parentIdx != null && claimMapByOrderIndex.containsKey(parentIdx)) {
+                ApplicationClaim currentClaim = claimMapByOrderIndex.get(currentIdx);
+                ApplicationClaim parentClaim = claimMapByOrderIndex.get(parentIdx);
+                if (currentClaim != null && parentClaim != null) {
+                    currentClaim.setParentClaim(parentClaim);
+                }
             }
         }
+
+        // 4. LƯU TẤT CẢ CLAIM MỚI
+        List<ApplicationClaim> savedClaims = claimRepository.saveAll(newClaims);
+
+        // 5. CẬP NHẬT LẠI COLLECTION TRONG APP
+        app.getClaims().addAll(savedClaims);
     }
-    // Lệnh flush cuối cùng để đẩy các thay đổi về parent_claim_id xuống DB
-    claimRepository.flush(); 
-}
 
     private String getFileExtension(String fileName) {
         if (fileName == null) return "";
@@ -333,10 +343,15 @@ public class PatentService {
         return "Quy trình".equals(type) ? SolutionType.QUY_TRINH : SolutionType.SAN_PHAM;
     }
 
-    // --- PHƯƠNG THỨC MỚI: LẤY DANH SÁCH ĐƠN SÁNG CHẾ CHO EXAMINER ---
-    public List<Application> getPatentApplications() {
-        // Lọc trong database những đơn có AppType là SANG_CHE
-        return applicationRepository.findByAppType(AppType.SANG_CHE);
+    public List<Application> getApplicationsByType(String appTypeString) {
+        try {
+            AppType appType = AppType.valueOf(appTypeString.toUpperCase());
+            return applicationRepository.findByAppType(appType);
+        } catch (IllegalArgumentException e) {
+            // If the string is not a valid enum constant, return an empty list.
+            // This prevents errors and returns a predictable result for invalid input.
+            return new java.util.ArrayList<>();
+        }
     }
 
     public Application getApplicationById(UUID id) {
@@ -435,17 +450,6 @@ public Application resubmitApplication(UUID id, PatentSubmissionDTO dto, Multipa
     }
 
     // 6. Làm mới danh sách Điểm bảo hộ (Xóa cũ - Thêm mới)
-
-    // 6.1 Xóa claims cũ trong DB
-    claimRepository.deleteByApplicationId(id);
-    claimRepository.flush(); // 🚨 BẮT BUỘC
-
-    // 6.2 Clear danh sách claims trong bộ nhớ (Hibernate context)
-    if (app.getClaims() != null) {
-        app.getClaims().clear();
-    }
-
-    // 6.3 Lưu lại claims mới
     saveClaims(dto.getClaims(), app);
 
 

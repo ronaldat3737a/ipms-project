@@ -5,24 +5,27 @@ import {
   FileText, Bookmark, PenTool, FileStack, LogOut,
   AlertCircle, XCircle
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 const PatentList = () => {
   const navigate = useNavigate();
-  
-  const [patents, setPatents] = useState([]); 
+  const { type } = useParams(); // 'sang-che' or 'giai-phap-huu-ich'
+
+  const [patents, setPatents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  const [typeFilter, setTypeFilter] = useState("Tất cả");
+
+  // Labels and API values based on URL type
+  const pageTitle = type === 'sang-che' ? 'Sáng chế' : 'Giải pháp hữu ích';
+  const apiAppType = type === 'sang-che' ? 'SANG_CHE' : 'GIAI_PHAP_HUU_ICH';
+
   const [statusFilter, setStatusFilter] = useState("Tất cả");
 
-  // --- CẬP NHẬT ÁNH XẠ TRẠNG THÁI (THÊM TỪ CHỐI, XOÁ MỚI TẠO KHỎI UI) ---
   const getStatusUI = (status) => {
     switch (status) {
       case "DANG_TD_HINH_THUC":
         return { label: "Đang TĐ Hình thức", color: "bg-blue-50 text-blue-600 border-blue-100" };
-      case "CHO_NOP_PHI_GD2": 
+      case "CHO_NOP_PHI_GD2":
         return { label: "Chờ nộp lệ phí GĐ 2", color: "bg-purple-50 text-purple-600 border-purple-100", fee: true };
       case "DANG_TD_NOI_DUNG":
         return { label: "Đang TĐ Nội dung", color: "bg-indigo-50 text-indigo-600 border-indigo-100" };
@@ -37,16 +40,17 @@ const PatentList = () => {
       case "DA_CAP_VAN_BANG":
         return { label: "Đã cấp văn bằng", color: "bg-green-50 text-green-600 border-green-100" };
       default:
-        // Các trạng thái khác (như MOI) vẫn map vào "Đang xử lý" để không lỗi logic
         return { label: "Đang xử lý", color: "bg-gray-50 text-gray-500 border-gray-100" };
     }
   };
 
   useEffect(() => {
+    document.title = `Danh sách ${pageTitle}`;
     const fetchPatents = async () => {
+      if (!type) return;
       try {
         setLoading(true);
-        const response = await fetch("http://localhost:8080/api/patents/all");
+        const response = await fetch(`http://localhost:8080/api/patents/all?appType=${apiAppType}`);
         if (!response.ok) throw new Error(`Lỗi Server: ${response.status}`);
         const data = await response.json();
         if (Array.isArray(data)) {
@@ -62,26 +66,19 @@ const PatentList = () => {
       }
     };
     fetchPatents();
-  }, []);
+  }, [type, pageTitle, apiAppType]);
 
 
-  // --- LOGIC LỌC KẾT HỢP NHUẦN NHUYỄN ---
   const filteredPatents = patents.filter((item) => {
-    // 1. Lọc theo Loại (Sáng chế / GPHI)
-    const matchType = typeFilter === "Tất cả" || item.appType === typeFilter;
-    
-    // 2. Lọc theo Trạng thái (Dựa trên Label của getStatusUI)
     const ui = getStatusUI(item.status);
     const matchStatus = statusFilter === "Tất cả" || ui.label === statusFilter;
-    
-    return matchType && matchStatus;
+    return matchStatus;
   });
 
   if (loading) return <div className="flex h-screen items-center justify-center">Đang tải dữ liệu...</div>;
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
-      {/* --- SIDEBAR (Giữ nguyên) --- */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0">
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -91,13 +88,14 @@ const PatentList = () => {
         </div>
         <nav className="flex-grow px-4 space-y-2">
           <NavItem onClick={() => navigate("/applicant-dashboard")} icon={<LayoutDashboard size={20} />} label="Dashboard" />
-          <NavItem icon={<FileText size={20} />} label="Sáng chế/ GPHI" active />
+          <NavItem onClick={() => navigate("/applicant/applications/sang-che")} icon={<FileText size={20} />} label="Sáng chế" active={type === 'sang-che'} />
+          <NavItem onClick={() => navigate("/applicant/applications/giai-phap-huu-ich")} icon={<FileText size={20} />} label="Giải pháp hữu ích" active={type === 'giai-phap-huu-ich'} />
           <NavItem icon={<Bookmark size={20} />} label="Nhãn hiệu" />
           <NavItem icon={<PenTool size={20} />} label="Kiểu dáng CN" />
           <NavItem icon={<FileStack size={20} />} label="Hồ sơ của tôi" />
         </nav>
         <div className="p-4 border-t border-gray-100">
-          <button onClick={() => navigate("/")} 
+          <button onClick={() => navigate("/")}
           className="flex items-center gap-3 text-gray-500 hover:text-red-500 w-full px-4 py-3 transition">
             <LogOut size={20} />
             <span className="font-bold text-sm">Đăng xuất</span>
@@ -108,15 +106,14 @@ const PatentList = () => {
       <main className="flex-grow flex flex-col min-w-0">
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 text-sm">
           <div className="flex items-center gap-4 font-medium text-gray-500">
-            <span>Sáng chế</span>
-            <button 
-              onClick={() => navigate("/applicant/patent/step1")}
+            <span>{pageTitle}</span>
+            <button
+              onClick={() => navigate(`/applicant/applications/${type}/filing/step1`)}
               className="bg-blue-500 text-white px-4 py-1.5 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-600 transition ml-4"
             >
               <Plus size={16} /> Nộp đơn mới
             </button>
           </div>
-          {/* Avatar Area */}
           <div className="flex items-center gap-6">
             <Bell size={20} className="text-gray-400 cursor-pointer" />
             <div className="flex items-center gap-3 border-l pl-6 border-gray-100">
@@ -130,18 +127,9 @@ const PatentList = () => {
         </header>
 
         <div className="p-8 space-y-6 overflow-y-auto">
-          <h1 className="text-2xl font-bold text-gray-800">Đơn Sáng chế/GPHI của tôi</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Đơn {pageTitle} của tôi</h1>
 
-          {/* Filters Area */}
           <div className="space-y-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-bold text-gray-400 w-24 uppercase tracking-tighter">Loại:</span>
-              <div className="flex gap-2">
-                {["Tất cả", "Sáng chế", "Giải pháp hữu ích"].map(t => (
-                  <FilterButton key={t} label={t} active={typeFilter === t} onClick={() => setTypeFilter(t)} />
-                ))}
-              </div>
-            </div>
             <div className="flex items-start gap-4">
               <span className="text-sm font-bold text-gray-400 w-24 uppercase mt-2 tracking-tighter">Trạng thái:</span>
               <div className="flex flex-wrap gap-2 flex-1">
@@ -152,7 +140,6 @@ const PatentList = () => {
             </div>
           </div>
 
-          {/* Table Area */}
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
             {error ? (
               <div className="p-10 text-center text-red-500 flex flex-col items-center gap-2">
@@ -164,8 +151,7 @@ const PatentList = () => {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                     <th className="px-6 py-4">Mã đơn</th>
-                    <th className="px-6 py-4 text-center">Loại</th>
-                    <th className="px-6 py-4">Tên sáng chế</th>
+                    <th className="px-6 py-4">Tên đơn</th>
                     <th className="px-6 py-4">Ngày nộp</th>
                     <th className="px-6 py-4">Trạng thái</th>
                     <th className="px-6 py-4 text-center">Hành động</th>
@@ -177,19 +163,14 @@ const PatentList = () => {
                     return (
                       <React.Fragment key={item.id}>
                         <tr className={`hover:bg-gray-50 transition group ${ui.rejected ? 'bg-red-50/20' : ''}`}>
-                          <td 
+                          <td
                             className="px-6 py-4 text-sm font-bold text-blue-500 cursor-pointer hover:underline"
-                            onClick={() => navigate(`/applicant/patent/view/${item.id}`)}
+                            onClick={() => navigate(`/applicant/applications/${type}/view/${item.id}`)}
                           >
                             {item.appNo || "ĐANG CẤP"}
                           </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`text-[10px] font-black ${item.appType === "Giải pháp hữu ích" ? "text-orange-500" : "text-emerald-500"}`}>
-                              {item.appType === "Giải pháp hữu ích" ? "GPHI" : "SÁNGC"}
-                            </span>
-                          </td>
                           <td className="px-6 py-4 text-sm font-medium text-gray-700 max-w-xs truncate">
-                            {item.patentName || "Chưa có tên"}
+                            {item.title || "Chưa có tên"}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-500 font-medium">
                             {new Date(item.createdAt).toLocaleDateString("vi-VN")}
@@ -202,7 +183,7 @@ const PatentList = () => {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-center gap-3 text-gray-400">
-                              <Eye size={16} className="cursor-pointer hover:text-blue-500" onClick={() => navigate(`/applicant/patent/view/${item.id}`)} />
+                              <Eye size={16} className="cursor-pointer hover:text-blue-500" onClick={() => navigate(`/applicant/applications/${type}/view/${item.id}`)} />
                               {ui.fee && <CreditCard size={16} className="cursor-pointer hover:text-blue-600" />}
                             </div>
                           </td>
@@ -224,7 +205,6 @@ const PatentList = () => {
   );
 };
 
-// Sub-components (Giữ nguyên giao diện 100%)
 const NavItem = ({ icon, label, active = false, onClick }) => (
   <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${active ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"}`}>
     {icon}

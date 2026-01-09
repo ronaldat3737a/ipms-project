@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { X, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
 const Step5_Submission = () => {
   const navigate = useNavigate();
+  const { type } = useParams(); // Get type from URL
   
   // Lấy dữ liệu từ Context (Thêm fallback để an toàn cho cả luồng sửa đơn)
   const context = useFilingData();
@@ -30,18 +31,12 @@ const Step5_Submission = () => {
     { id: 6, label: "Tính phí & Thanh toán" },
   ];
 
-  /**
-   * Logic chuyển bước:
-   * Giữ nguyên logic xác nhận checkbox trước khi cho phép đi tiếp.
-   * Dù là đơn mới hay đơn sửa, bước này đóng vai trò chốt chặn pháp lý.
-   */
   const handleNextStep = () => {
     if (!isConfirmed) {
       alert("Vui lòng xác nhận cam đoan thông tin trước khi chuyển sang bước thanh toán.");
       return;
     }
-    // Chuyển sang bước 6 để thực hiện tính phí và gọi VNPay
-    navigate("/applicant/patent/step6");
+    navigate(`/applicant/applications/${type}/filing/step6`);
   };
 
   return (
@@ -53,7 +48,7 @@ const Step5_Submission = () => {
             const isConfirm = window.confirm("Hệ thống sẽ xóa toàn bộ dữ liệu đang nhập. Bạn có chắc chắn muốn hủy bỏ không?");
             if (isConfirm) {
               clearFormData();
-              navigate("/applicant/patent");
+              navigate(`/applicant/applications/${type}`);
             }
           }}
           className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium"
@@ -136,7 +131,7 @@ const Step5_Submission = () => {
               {/* Nút điều hướng - Giữ nguyên logic dẫn link */}
               <div className="flex gap-4 pt-6">
                 <button
-                  onClick={() => navigate("/applicant/patent/step4")}
+                  onClick={() => navigate(`/applicant/applications/${type}/filing/step4`)}
                   className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-sm text-gray-500 hover:bg-gray-50 transition"
                 >
                   Quay lại

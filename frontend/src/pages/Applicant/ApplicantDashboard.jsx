@@ -100,7 +100,7 @@ const ApplicantDashboard = () => {
           <NavItem 
             icon={<FileText size={20} />} 
             label="Sáng chế/ GPHI" 
-            onClick={() => navigate("/applicant/patent")} 
+            onClick={() => navigate("/applicant/applications/sang-che")} 
           />
           <NavItem icon={<Bookmark size={20} />} label="Nhãn hiệu" />
           <NavItem icon={<PenTool size={20} />} label="Kiểu dáng CN" />
@@ -181,7 +181,9 @@ const ApplicantDashboard = () => {
               />
             </div>
             <div className="flex gap-4">
-              <button className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition">
+              <button 
+                onClick={() => navigate("/applicant/applications/sang-che/filing/step1")}
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition">
                 <Plus size={18} /> Sáng chế/GPHI
               </button>
               <button className="bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition">

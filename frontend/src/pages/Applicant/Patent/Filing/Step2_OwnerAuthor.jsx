@@ -1,11 +1,12 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { X, ChevronDown, Plus, Trash2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useFilingData } from "./FilingContext";
 
 // 1. Thêm prop isRevision với giá trị mặc định là false
 const Step2_OwnerAuthor = ({ isRevision = false }) => {
   const navigate = useNavigate();
+  const { type } = useParams(); // Get type from URL
   const { formData, updateFormData, clearFormData } = useFilingData();
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -178,10 +179,10 @@ const Step2_OwnerAuthor = ({ isRevision = false }) => {
       {/* Nút điều hướng: Chỉ hiện khi nộp đơn mới */}
       {!isRevision && (
         <div className="flex justify-end gap-4 pt-8">
-          <button onClick={() => navigate("/applicant/patent/step1")} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm">
+          <button onClick={() => navigate(`/applicant/applications/${type}/filing/step1`)} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm">
             <ChevronLeft size={18} /> Quay lại
           </button>
-          <button onClick={() => navigate("/applicant/patent/step3")} className="flex items-center gap-2 px-8 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition shadow-md">
+          <button onClick={() => navigate(`/applicant/applications/${type}/filing/step3`)} className="flex items-center gap-2 px-8 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition shadow-md">
             Tiếp theo <ChevronRight size={18} />
           </button>
         </div>
@@ -212,7 +213,7 @@ const Step2_OwnerAuthor = ({ isRevision = false }) => {
         <button onClick={() => {
             if (window.confirm("Hệ thống sẽ xóa toàn bộ dữ liệu... Bạn có chắc chắn muốn hủy bỏ không?")) {
               clearFormData();
-              navigate("/applicant/patent");
+              navigate(`/applicant/applications/${type}`);
             }
         }} className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium">
           <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center"><X size={14} /></div>

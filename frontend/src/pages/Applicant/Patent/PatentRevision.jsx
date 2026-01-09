@@ -13,7 +13,7 @@ import Step3_Attachments from "./Filing/Step3_Attachments";
 import Step4_Claims from "./Filing/Step4_Claims";
 
 const RevisionContent = () => {
-  const { id } = useParams();
+  const { id, type } = useParams();
   const navigate = useNavigate();
   const { formData, setWholeFormData } = useFilingData(); 
   const [correction, setCorrection] = useState(null);
@@ -43,22 +43,14 @@ useEffect(() => {
   fetchAll();
 }, [id, hasLoaded, setWholeFormData]);
 
-  /**
-   * SỬA LOGIC QUAN TRỌNG: handleResubmit
-   * Phải dùng FormData vì có chứa file đính kèm mới từ Step 3
-   */
   const handleResubmit = async () => {
   setSubmitting(true);
   const API_BASE_URL = "http://localhost:8080";
 
   try {
     const submissionData = new FormData();
-
-    // 1. Tách dữ liệu ra để xử lý mapping ngược
-    // Chúng ta lấy ipcCode (chuỗi từ input) để biến thành ipcCodes (mảng cho Backend)
     const { ipcCode, appType, solutionType, filingBasis, attachments, ...restOfData } = formData;
 
-    // --- HÀM MAPPING NGƯỢC: TIẾNG VIỆT UI -> ENUM BACKEND ---
     const reverseMapFilingBasis = (val) => {
       const map = {
         "Tác giả đồng thời là người nộp đơn": 'AUTHOR_IS_APPLICANT',
@@ -69,46 +61,37 @@ useEffect(() => {
       return map[val] || val; 
     };
 
-    // 2. Chuẩn bị Object dữ liệu cuối cùng (Khớp 100% với PatentSubmissionDTO.java)
     const finalPayload = {
       ...restOfData,
-      // Chuyển về Enum chuẩn
       appType: appType === "Sáng chế" ? "SANG_CHE" : "GIAI_PHAP_HUU_ICH",
       solutionType: solutionType === "Quy trình" ? "QUY_TRINH" : "SAN_PHAM",
       filingBasis: reverseMapFilingBasis(filingBasis),
-      
-      // Biến chuỗi "A61K, G06F" thành mảng ["A61K", "G06F"]
       ipcCodes: ipcCode ? ipcCode.split(",").map(item => item.trim()).filter(item => item !== "") : []
     };
 
-    // 3. Đưa JSON vào FormData dưới tên "patentData" (Dạng chuỗi String)
     submissionData.append("patentData", JSON.stringify(finalPayload));
 
-    // 4. Đính kèm các FILE mới (Nếu có)
     if (attachments && attachments.length > 0) {
       attachments.forEach((att) => {
-        if (att.file) { // Chỉ gửi những file thực tế (binary) người dùng vừa chọn/thay đổi
+        if (att.file) {
           submissionData.append("files", att.file);
         }
       });
     }
 
-    // 5. Gửi PUT request
     const res = await axios.put(
       `${API_BASE_URL}/api/patents/${id}/resubmit`,
       submissionData,
       {
         headers: {
-          // Tuyệt đối không tự set Content-Type để Axios tự xử lý Boundary
           "ngrok-skip-browser-warning": "69420"
         }
       }
     );
 
-    // 6. Xử lý kết quả
     if (res.status === 200 || res.status === 204) {
       alert("✅ Chúc mừng! Hồ sơ đã được cập nhật và gửi lại thành công.");
-      navigate("/applicant/patent");
+      navigate(`/applicant/applications/${type}`);
     }
 
   } catch (error) {
@@ -120,7 +103,6 @@ useEffect(() => {
   }
 };
 
-// PHƯƠNG ÁN DỰ PHÒNG (Chỉ chạy nếu cách trên vẫn lỗi 415)
 const handleResubmitFallback = async () => {
     const submissionData = new FormData();
     const { attachments, ...restOfData } = formData;
@@ -130,12 +112,11 @@ const handleResubmitFallback = async () => {
     const response = await fetch(`http://localhost:8080/api/patents/${id}/resubmit`, {
         method: "PUT",
         body: submissionData,
-        // KHÔNG SET BẤT KỲ HEADER CONTENT-TYPE NÀO Ở ĐÂY
     });
     
     if (response.ok) {
         alert("✅ Nộp lại thành công (via Fallback)!");
-        navigate("/applicant/patent");
+        navigate(`/applicant/applications/${type}`);
     } else {
         alert("❌ Vẫn lỗi kiểu dữ liệu. Hãy kiểm tra lại API Backend.");
     }
@@ -150,7 +131,6 @@ const handleResubmitFallback = async () => {
 
   return (
     <div className="flex h-screen bg-[#F8F9FA] overflow-hidden">
-      {/* BÊN TRÁI (3/4) - GIỮ NGUYÊN GIAO DIỆN */}
       <div className="w-3/4 overflow-y-auto p-8 border-r bg-white">
         <div className="max-w-4xl mx-auto space-y-12 pb-24">
           <header className="flex justify-between items-center border-b pb-4">
@@ -166,14 +146,12 @@ const handleResubmitFallback = async () => {
             <Info size={20}/> Vui lòng sửa các mục bị lỗi dựa theo ghi chú bên phải.
           </div>
 
-          {/* Các Step tự động nhận dữ liệu từ Context */}
           <Step1_GeneralInfo isRevision={true} />
           <Step2_OwnerAuthor isRevision={true} />
           <Step3_Attachments isRevision={true} />
           <Step4_Claims isRevision={true} />
         </div>
 
-        {/* NÚT SUBMIT CỐ ĐỊNH */}
         <div className="fixed bottom-0 left-0 w-3/4 bg-white border-t p-4 flex justify-end pr-12 shadow-md z-20">
            <button 
              onClick={handleResubmit} 
@@ -187,7 +165,6 @@ const handleResubmitFallback = async () => {
         </div>
       </div>
 
-      {/* BÊN PHẢI (1/4) - GIỮ NGUYÊN GIAO DIỆN */}
       <aside className="w-1/4 bg-slate-50 p-6 shadow-inner overflow-y-auto">
         <div className="bg-orange-500 text-white p-5 rounded-2xl shadow-lg mb-6">
           <div className="flex items-center gap-2 mb-2">

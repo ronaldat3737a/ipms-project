@@ -118,9 +118,8 @@ public ResponseEntity<Application> resubmitApplication(
     // --- 2. CHỨC NĂNG DÀNH CHO THẨM ĐỊNH VIÊN (EXAMINER) ---
     // Đây là phương thức bạn đang thiếu dẫn đến lỗi 404
     @GetMapping("/all")
-    public ResponseEntity<List<Application>> getAllPatents() {
-        // Gọi service lấy toàn bộ đơn có loại là SANG_CHE từ PostgreSQL
-        List<Application> applications = patentService.getPatentApplications();
+    public ResponseEntity<List<Application>> getAllApplications(@RequestParam("appType") String appType) {
+        List<Application> applications = patentService.getApplicationsByType(appType);
         return ResponseEntity.ok(applications);
     }
 

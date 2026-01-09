@@ -1,14 +1,27 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { X, ChevronDown } from "lucide-react";
 import { useFilingData } from "./FilingContext"; // Import "bộ não" dữ liệu
 
 // Thêm prop isRevision với giá trị mặc định là false
 const Step1_GeneralInfo = ({ isRevision = false }) => {
   const navigate = useNavigate();
+  const { type } = useParams(); // Get type from URL
 
   // Lấy dữ liệu và hàm cập nhật từ Context dùng chung
   const { formData, updateFormData, clearFormData } = useFilingData();
+
+  // Set initial appType for new filings based on URL
+  useEffect(() => {
+    if (!isRevision && type) {
+      const initialAppType = type === 'sang-che' ? 'Sáng chế' : 'Giải pháp hữu ích';
+      // Only update if it's not already set to avoid re-renders
+      if (formData.appType !== initialAppType) {
+        updateFormData({ appType: initialAppType });
+      }
+    }
+  }, [isRevision, type, updateFormData, formData.appType]);
+
 
   // Cố định bước hiện tại là 1 cho trang này
   const currentStep = 1;
@@ -29,7 +42,7 @@ const Step1_GeneralInfo = ({ isRevision = false }) => {
 
   // --- SỬA LỖI TRIM() AN TOÀN ---
   // Sử dụng optional chaining (?.) và default value "" để không bao giờ bị crash
-  const summaryText = formData?.summary || ""; 
+  const summaryText = formData?.summary || "";
   const wordCount = summaryText.trim()
     ? summaryText.trim().split(/\s+/).length
     : 0;
@@ -53,25 +66,27 @@ const Step1_GeneralInfo = ({ isRevision = false }) => {
             Chọn loại đơn đăng ký bạn muốn nộp.
           </p>
           <div className="flex flex-col gap-4">
-            <label className="flex items-center gap-3 cursor-pointer group">
+            <label className={`flex items-center gap-3 group ${isRevision ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
               <input
                 type="radio"
                 name="appType"
                 value="Sáng chế"
                 checked={formData?.appType === "Sáng chế"}
                 onChange={handleInputChange}
-                className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                disabled={isRevision}
+                className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500 disabled:bg-gray-200"
               />
               <span className="text-sm font-bold text-gray-700">Đơn sáng chế</span>
             </label>
-            <label className="flex items-center gap-3 cursor-pointer group">
+            <label className={`flex items-center gap-3 group ${isRevision ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
               <input
                 type="radio"
                 name="appType"
                 value="Giải pháp hữu ích"
                 checked={formData?.appType === "Giải pháp hữu ích"}
                 onChange={handleInputChange}
-                className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                disabled={isRevision}
+                className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500 disabled:bg-gray-200"
               />
               <span className="text-sm font-bold text-gray-700">Đơn giải pháp hữu ích</span>
             </label>
@@ -184,7 +199,7 @@ const Step1_GeneralInfo = ({ isRevision = false }) => {
           <div className="pt-10 flex justify-end">
             <button
               type="button"
-              onClick={() => navigate("/applicant/patent/step2")}
+              onClick={() => navigate(`/applicant/applications/${type}/filing/step2`)}
               className="bg-blue-400 hover:bg-blue-500 text-white px-10 py-3 rounded-xl font-bold transition shadow-md active:scale-95"
             >
               Tiếp theo
@@ -214,7 +229,7 @@ const Step1_GeneralInfo = ({ isRevision = false }) => {
             const isConfirm = window.confirm("Hệ thống sẽ xóa toàn bộ dữ liệu... Bạn có chắc chắn muốn hủy bỏ không?");
             if (isConfirm) {
               clearFormData();
-              navigate("/applicant/patent");
+              navigate(`/applicant/applications/${type}`);
             }
           }}
           className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium"

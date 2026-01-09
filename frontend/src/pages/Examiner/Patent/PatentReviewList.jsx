@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { 
   LayoutDashboard, UserCheck, FileText, Lightbulb, Package, 
   CreditCard, Settings, Bell, Search, Filter, LogOut, ShieldCheck 
@@ -7,71 +7,74 @@ import {
 
 const PatentReviewList = () => {
   const navigate = useNavigate();
+  const { type } = useParams(); // 'sang-che' or 'giai-phap-huu-ich'
+
+  // Dynamic titles and API values based on type
+  const pageTitle = type === 'sang-che' ? 'Sáng chế' : 'Giải pháp hữu ích';
+  const apiAppType = type === 'sang-che' ? 'SANG_CHE' : 'GIAI_PHAP_HUU_ICH';
+
   const [activeTab, setActiveTab] = useState("hinh-thuc");
   
-  // --- LOGIC KẾT NỐI BACKEND ---
   const [patents, setPatents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
+    document.title = `TĐ ${pageTitle}`;
     const fetchPatents = async () => {
+      if (!type) return;
       setLoading(true);
       try {
-        // Gọi đến API Spring Boot của bạn
-        const response = await fetch("http://localhost:8080/api/patents/all");
+        const response = await fetch(`http://localhost:8080/api/patents/all?appType=${apiAppType}`);
         const data = await response.json();
         setPatents(data);
       } catch (error) {
-        console.error("Lỗi lấy dữ liệu từ Postgres:", error);
+        console.error("Lỗi lấy dữ liệu:", error);
       } finally {
         setLoading(false);
       }
     };
     fetchPatents();
-  }, []);
+  }, [type, apiAppType]);
 
-  // --- LOGIC LỌC DỮ LIỆU (Khớp với AppStatus.MOI trong Java) ---
   const filteredData = Array.isArray(patents) ? patents.filter(item => {
-  // 1. Chuyển status về String để so sánh (đề phòng kiểu dữ liệu từ DB)
-  const status = item.status || "";
+    const status = item.status || "";
 
-  const matchesTab = () => {
-    switch (activeTab) {
-      case "hinh-thuc":
-        return ["MOI", "DANG_TD_HINH_THUC"].includes(status);
-      case "cho-nop-phi":
-        return ["CHO_NOP_PHI_GD1", "CHO_NOP_PHI_GD2", "CHO_NOP_PHI_GD3"].includes(status);
-      case "sua-doi-hinh-thuc":
-        return status === "CHO_SUA_DOI_HINH_THUC";
-      case "noi-dung":
-        return ["DANG_TD_NOI_DUNG"].includes(status);
-      case "sua-doi-noi-dung":
-        return status === "CHO_SUA_DOI_NOI_DUNG";
-      case "da-tu-choi":
-        return status === "TU_CHOI_DON";
-      case "cap-bang":
-        return status === "DA_CAP_VAN_BANG";
-      default:
-        return true;
-    }
-  };
+    const matchesTab = () => {
+      switch (activeTab) {
+        case "hinh-thuc":
+          return ["MOI", "DANG_TD_HINH_THUC"].includes(status);
+        case "cho-nop-phi":
+          return ["CHO_NOP_PHI_GD1", "CHO_NOP_PHI_GD2", "CHO_NOP_PHI_GD3"].includes(status);
+        case "sua-doi-hinh-thuc":
+          return status === "CHO_SUA_DOI_HINH_THUC";
+        case "noi-dung":
+          return ["DANG_TD_NOI_DUNG"].includes(status);
+        case "sua-doi-noi-dung":
+          return status === "CHO_SUA_DOI_NOI_DUNG";
+        case "da-tu-choi":
+          return status === "TU_CHOI_DON";
+        case "cap-bang":
+          return status === "DA_CAP_VAN_BANG";
+        default:
+          return true;
+      }
+    };
 
-  // 2. Logic tìm kiếm (Phải dùng đúng tên trường appNo và fullName từ applicant)
-  const searchLower = searchTerm.toLowerCase();
-  const matchesSearch = 
-    (item.appNo || "").toLowerCase().includes(searchLower) || 
-    (item.applicant?.fullName || "").toLowerCase().includes(searchLower);
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = 
+      (item.appNo || "").toLowerCase().includes(searchLower) || 
+      (item.applicant?.fullName || "").toLowerCase().includes(searchLower);
 
-  return matchesTab() && matchesSearch;
-}) : [];
+    return matchesTab() && matchesSearch;
+  }) : [];
 
   const handleRowClick = (item) => {
     const substantiveReviewStatuses = ["DANG_TD_NOI_DUNG", "CHO_SUA_DOI_NOI_DUNG"];
     if (substantiveReviewStatuses.includes(item.status)) {
-      navigate(`/examiner/substantive-review/sang-che/${item.id}`);
+      navigate(`/examiner/substantive-review/${type}/${item.id}`);
     } else {
-      navigate(`/examiner/review/sang-che/${item.id}`);
+      navigate(`/examiner/review/${type}/${item.id}`);
     }
   };
 
@@ -99,7 +102,6 @@ const PatentReviewList = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-slate-900">
-      {/* --- SIDEBAR: GIỮ NGUYÊN 100% --- */}
       <aside className="w-72 bg-slate-900 text-white flex flex-col shadow-2xl shrink-0">
         <div className="p-8 border-b border-slate-800">
           <div className="flex items-center space-x-2">
@@ -111,8 +113,8 @@ const PatentReviewList = () => {
         </div>
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           <SidebarItem icon={<LayoutDashboard size={20} />} label="Dashboard" onClick={() => navigate("/examiner-dashboard")} />
-          <SidebarItem icon={<FileText size={18} />} label="TĐ Sáng chế" active />
-          <SidebarItem icon={<Lightbulb size={18} />} label="TĐ Giải pháp hữu ích" onClick={() => navigate("/examiner/utility-solutions")} />
+          <SidebarItem icon={<FileText size={18} />} label="TĐ Sáng chế" active={type === 'sang-che'} onClick={() => navigate("/examiner/applications/sang-che")} />
+          <SidebarItem icon={<Lightbulb size={18} />} label="TĐ Giải pháp hữu ích" active={type === 'giai-phap-huu-ich'} onClick={() => navigate("/examiner/applications/giai-phap-huu-ich")} />
           <SidebarItem icon={<Package size={18} />} label="TĐ Kiểu dáng công nghiệp" />
           <SidebarItem icon={<ShieldCheck size={18}/>} label="TĐ Nhãn hiệu" />
           <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">Hệ thống</div>
@@ -126,10 +128,9 @@ const PatentReviewList = () => {
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT: GIỮ NGUYÊN 100% --- */}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-20 bg-white border-b flex items-center justify-between px-10 shadow-sm z-10 shrink-0">
-          <h1 className="text-xl font-bold text-blue-800 uppercase tracking-tighter">Đơn đăng kí sáng chế</h1>
+          <h1 className="text-xl font-bold text-blue-800 uppercase tracking-tighter">Đơn đăng kí {pageTitle}</h1>
           <div className="flex items-center space-x-6">
             <Bell className="text-slate-400" size={22} />
             <img src="https://ui-avatars.com/api/?name=Examiner&background=0D8ABC&color=fff" className="w-10 h-10 rounded-xl" alt="avatar" />
@@ -138,11 +139,10 @@ const PatentReviewList = () => {
 
         <section className="flex-1 overflow-y-auto p-8 space-y-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-slate-800">Danh sách đơn đăng ký Sáng chế</h2>
-            <p className="text-sm text-slate-500 font-medium">Quản lý các đơn đăng ký sáng chế từ PostgreSQL.</p>
+            <h2 className="text-2xl font-bold text-slate-800">Danh sách đơn đăng ký {pageTitle}</h2>
+            <p className="text-sm text-slate-500 font-medium">Quản lý các đơn đăng ký {pageTitle} từ PostgreSQL.</p>
           </div>
 
-          {/* TAB BAR */}
           <div className="flex bg-gray-200/50 p-1 rounded-lg w-full">
             <TabItem label="Thẩm định Hình thức" active={activeTab === "hinh-thuc"} onClick={() => setActiveTab("hinh-thuc")} />
             <TabItem label="Chờ nộp phí" active={activeTab === "cho-nop-phi"} onClick={() => setActiveTab("cho-nop-phi")} />
@@ -153,7 +153,6 @@ const PatentReviewList = () => {
             <TabItem label="Cấp văn bằng" active={activeTab === "cap-bang"} onClick={() => setActiveTab("cap-bang")} />
           </div>
 
-          {/* SEARCH & FILTER */}
           <div className="flex gap-4 items-center">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -170,7 +169,6 @@ const PatentReviewList = () => {
             </button>
           </div>
 
-          {/* TABLE - HIỂN THỊ DỮ LIỆU THẬT */}
 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
   <div className="p-6 border-b flex justify-between items-center">
     <div>

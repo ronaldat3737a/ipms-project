@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { 
   X, CheckCircle2, ChevronLeft, ChevronRight, 
   Upload, FileText, Trash2
@@ -10,6 +10,7 @@ import { PDFDocument } from 'pdf-lib';
 // 1. Thêm prop isRevision
 const Step3_Attachments = ({ isRevision = false }) => {
   const navigate = useNavigate();
+  const { type } = useParams(); // Get type from URL
   
   const context = useFilingData();
   const { formData, updateFormData, clearFormData } = context || { 
@@ -154,8 +155,8 @@ const Step3_Attachments = ({ isRevision = false }) => {
 
       {!isRevision && (
         <div className="flex justify-end gap-4 pt-10">
-          <button onClick={() => navigate("/applicant/patent/step2")} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm"><ChevronLeft size={18} /> Quay lại</button>
-          <button onClick={() => navigate("/applicant/patent/step4")} disabled={(formData.attachments?.length || 0) < 3} className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition shadow-md text-white ${(formData.attachments?.length || 0) >= 3 ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"}`}>Tiếp theo <ChevronRight size={18} /></button>
+          <button onClick={() => navigate(`/applicant/applications/${type}/filing/step2`)} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm"><ChevronLeft size={18} /> Quay lại</button>
+          <button onClick={() => navigate(`/applicant/applications/${type}/filing/step4`)} disabled={(formData.attachments?.length || 0) < 3} className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition shadow-md text-white ${(formData.attachments?.length || 0) >= 3 ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"}`}>Tiếp theo <ChevronRight size={18} /></button>
         </div>
       )}
     </div>
@@ -178,7 +179,7 @@ const Step3_Attachments = ({ isRevision = false }) => {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-800">
       <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white sticky top-0 z-10">
-        <button onClick={() => { if (window.confirm("Hệ thống sẽ xóa...")) { clearFormData(); navigate("/applicant/patent"); } }} className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium">
+        <button onClick={() => { if (window.confirm("Hệ thống sẽ xóa...")) { clearFormData(); navigate(`/applicant/applications/${type}`); } }} className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium">
           <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center"><X size={14} /></div> Hủy bỏ
         </button>
         {/* ... user info ... */}
