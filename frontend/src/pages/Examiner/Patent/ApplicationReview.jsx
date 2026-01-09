@@ -376,10 +376,10 @@ const ApplicationReview = () => {
       {/* 1. GIAI ĐOẠN HÌNH THỨC */}
       {(app.status === "MOI" || app.status === "DANG_TD_HINH_THUC") && (
         <>
-          <button onClick={() => navigate(`/examiner/review/sang-che/${id}/accept`, { state: { appData: app } })} className="px-4 py-2 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#157347]">
+          <button onClick={() => navigate(`/examiner/review/${type}/${id}/accept`, { state: { appData: app } })} className="px-4 py-2 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#157347]">
             <CheckCircle size={14} /> Chấp nhận hình thức
           </button>
-          <button onClick={() => navigate(`/examiner/review/sang-che/${id}/correction`, { state: { appData: app } })} className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6]">
+          <button onClick={() => navigate(`/examiner/review/${type}/${id}/correction`, { state: { appData: app } })} className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6]">
             <AlertTriangle size={14} /> Yêu cầu sửa đổi
           </button>
         </>
@@ -395,10 +395,10 @@ const ApplicationReview = () => {
       {/* 3. GIAI ĐOẠN NỘI DUNG */}
       {app.status === "DANG_TD_NOI_DUNG" && (
         <>
-          <button onClick={() => navigate(`/examiner/substantive-review/sang-che/${id}/grant`, { state: { appData: app } })} className="px-4 py-2 bg-[#0D6EFD] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#0b5ed7]">
+          <button onClick={() => navigate(`/examiner/substantive-review/${type}/${id}/grant`, { state: { appData: app } })} className="px-4 py-2 bg-[#0D6EFD] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#0b5ed7]">
             <Award size={14} /> Chấp nhận cấp bằng
           </button>
-          <button onClick={() => navigate(`/examiner/substantive-review/sang-che/${id}/correction`, { state: { appData: app } })} className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6]">
+          <button onClick={() => navigate(`/examiner/substantive-review/${type}/${id}/correction`, { state: { appData: app } })} className="px-4 py-2 bg-white text-[#FD7E14] border border-[#FD7E14] text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#fff3e6]">
             <AlertTriangle size={14} /> Sửa đổi nội dung
           </button>
         </>
@@ -407,7 +407,7 @@ const ApplicationReview = () => {
       {/* 1. GIAI ĐOẠN ĐÃ CẤP VĂN BẰNG (Trạng thái của bạn hiện tại) */}
   {app.status === "DA_CAP_VAN_BANG" && (
     <button 
-      onClick={() => navigate(`/examiner/patent/${id}/certificate`)} 
+      onClick={() => navigate(`/examiner/applications/${type}/${id}/certificate`)} 
       className="px-6 py-2.5 bg-[#198754] text-white text-[11px] font-bold rounded-md flex items-center gap-2 shadow-lg shadow-green-100 hover:bg-[#157347] transition-all"
     >
       <Award size={16} /> XEM VĂN BẰNG ĐIỆN TỬ
@@ -417,7 +417,7 @@ const ApplicationReview = () => {
       {/* Thay đổi nút ở dòng 363 (trong file cũ của bạn) */}
 {app.status === "TU_CHOI_DON" && (
   <button 
-    onClick={() => navigate(`/examiner/review/sang-che/${id}/reject-reason`, { state: { appData: app } })} 
+    onClick={() => navigate(`/examiner/review/${type}/${id}/reject-reason`, { state: { appData: app } })} 
     className="px-4 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-md flex items-center gap-2"
   >
     <Search size={14} /> Xem lý do từ chối
@@ -427,7 +427,7 @@ const ApplicationReview = () => {
       {/* NÚT TỪ CHỐI CHUNG (Dùng cho Hình thức, Chờ phí, Nội dung) */}
       {["MOI", "DANG_TD_HINH_THUC", "CHO_NOP_PHI_GD2", "DANG_TD_NOI_DUNG"].includes(app.status) && (
         <button 
-          onClick={() => navigate(`/examiner/review/sang-che/${id}/reject`, { state: { appData: app } })}
+          onClick={() => navigate(`/examiner/review/${type}/${id}/reject`, { state: { appData: app } })}
           className="px-4 py-2 bg-[#DC3545] text-white text-[11px] font-bold rounded-md flex items-center gap-2 hover:bg-[#bb2d3b]"
         >
           <XCircle size={14} /> Từ chối đơn
