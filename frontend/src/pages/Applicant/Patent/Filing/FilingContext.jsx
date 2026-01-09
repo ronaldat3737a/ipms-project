@@ -69,22 +69,52 @@ export const FilingProvider = ({ children }) => {
 
   // 5. HÀM NẠP TOÀN BỘ DỮ LIỆU (Dùng cho Sửa đơn - Revision)
   // Hàm này sẽ "làm sạch" dữ liệu từ API để tránh lỗi .trim()
+  // (Đã tối ưu cho Sửa đơn)
   const setWholeFormData = (apiData) => {
-    const sanitizedData = {
-      ...DEFAULT_FORM_DATA, // Đảm bảo có đủ các trường mặc định
-      ...apiData,
-      // Chống lỗi trim(): Nếu giá trị từ API là null/undefined thì gán thành ""
-      title: apiData.title || "",
-      summary: apiData.summary || "",
-      technicalField: apiData.technicalField || "",
-      solutionDetail: apiData.solutionDetail || "",
-      ownerName: apiData.ownerName || apiData.applicant?.fullName || "",
-      ownerId: apiData.ownerId || apiData.applicant?.idNumber || "",
-      ownerAddress: apiData.ownerAddress || apiData.applicant?.address || "",
-      ownerPhone: apiData.ownerPhone || apiData.applicant?.phone || "",
-      ownerEmail: apiData.ownerEmail || apiData.applicant?.email || "",
-      isRevision: true, // Đánh dấu đây là luồng sửa đơn
+    // Hàm phụ trợ để map Enum từ Backend sang Tiếng Việt cho UI
+    const mapFilingBasisToUI = (val) => {
+      const map = {
+        'AUTHOR_IS_APPLICANT': "Tác giả đồng thời là người nộp đơn",
+        'EMPLOYMENT': "Thụ hưởng do thuê/giao việc (Sáng chế công vụ)",
+        'CONTRACT': "Thụ hưởng theo Hợp đồng chuyển giao",
+        'INHERITANCE': "Thụ hưởng do Thừa kế",
+        'TRUC_TUYEN': "Tác giả đồng thời là người nộp đơn"
+      };
+      return map[val] || val;
     };
+
+    const sanitizedData = {
+      ...DEFAULT_FORM_DATA, 
+      ...apiData,
+      isRevision: true,
+
+      // 1. Mapping lại loại đơn (Nếu Backend trả về Enum)
+      appType: apiData.appType === "SANG_CHE" ? "Sáng chế" : "Giải pháp hữu ích",
+      solutionType: apiData.solutionType === "QUY_TRINH" ? "Quy trình" : "Sản phẩm",
+
+      // 2. Xử lý IPC: Biến mảng thành chuỗi để hiện trong ô input Step 1
+      ipcCode: apiData.ipcCodes ? apiData.ipcCodes.join(", ") : "",
+
+      // 3. Thông tin chủ đơn (Phẳng hóa dữ liệu từ object applicant)
+      ownerName: apiData.applicant?.fullName || "",
+      ownerId: apiData.applicant?.idNumber || "",
+      ownerAddress: apiData.applicant?.address || "",
+      ownerPhone: apiData.applicant?.phone || "",
+      ownerEmail: apiData.applicant?.email || "",
+      ownerRepCode: apiData.applicant?.repCode || "",
+
+      // 4. XỬ LÝ NGÀY SINH: Đảm bảo định dạng YYYY-MM-DD cho input date
+      ownerDob: apiData.applicant?.dob ? apiData.applicant.dob.toString().split('T')[0] : "",
+
+      // 5. XỬ LÝ CƠ SỞ QUYỀN: Map Enum sang Tiếng Việt để ô Radio tự tích
+      filingBasis: mapFilingBasisToUI(apiData.filingBasis),
+
+      // 6. Đảm bảo mảng không bị null
+      authors: apiData.authors || [],
+      attachments: apiData.attachments || [],
+      claims: apiData.claims || [],
+    };
+    
     setFormData(sanitizedData);
   };
 

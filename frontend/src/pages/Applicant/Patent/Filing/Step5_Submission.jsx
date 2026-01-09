@@ -5,13 +5,20 @@ import { useFilingData } from "./FilingContext";
 
 const Step5_Submission = () => {
   const navigate = useNavigate();
-  // Lấy dữ liệu từ Context
-  const { formData, clearFormData } = useFilingData();
+  
+  // Lấy dữ liệu từ Context (Thêm fallback để an toàn cho cả luồng sửa đơn)
+  const context = useFilingData();
+  const { formData, clearFormData } = context || { 
+    formData: { attachments: [], claims: [] }, 
+    clearFormData: () => {} 
+  };
+
   const [isConfirmed, setIsConfirmed] = useState(false);
 
+  // Lấy thông tin user từ localStorage
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   
-  // SỬA: currentStep phải là 5
+  // Step 5: Xác nhận đơn
   const currentStep = 5; 
 
   const steps = [
@@ -23,7 +30,11 @@ const Step5_Submission = () => {
     { id: 6, label: "Tính phí & Thanh toán" },
   ];
 
-  // Hàm xử lý khi nhấn "Tiếp theo"
+  /**
+   * Logic chuyển bước:
+   * Giữ nguyên logic xác nhận checkbox trước khi cho phép đi tiếp.
+   * Dù là đơn mới hay đơn sửa, bước này đóng vai trò chốt chặn pháp lý.
+   */
   const handleNextStep = () => {
     if (!isConfirmed) {
       alert("Vui lòng xác nhận cam đoan thông tin trước khi chuyển sang bước thanh toán.");
@@ -35,11 +46,11 @@ const Step5_Submission = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-800">
-      {/* --- HEADER --- */}
+      {/* --- HEADER: Giữ nguyên 100% --- */}
       <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white sticky top-0 z-10">
         <button
           onClick={() => {
-            const isConfirm = window.confirm("Hệ thống sẽ xóa toàn bộ dữ liệu. Bạn có chắc chắn muốn hủy bỏ không?");
+            const isConfirm = window.confirm("Hệ thống sẽ xóa toàn bộ dữ liệu đang nhập. Bạn có chắc chắn muốn hủy bỏ không?");
             if (isConfirm) {
               clearFormData();
               navigate("/applicant/patent");
@@ -66,7 +77,7 @@ const Step5_Submission = () => {
       </header>
 
       <div className="flex flex-grow overflow-hidden">
-        {/* --- SIDEBAR --- */}
+        {/* --- SIDEBAR: Giữ nguyên 100% --- */}
         <aside className="w-72 border-r border-gray-100 p-8 shrink-0 bg-gray-50/30">
           <h2 className="text-lg font-bold mb-8 text-gray-700">Tiến trình nộp đơn</h2>
           <div className="space-y-6">
@@ -93,11 +104,13 @@ const Step5_Submission = () => {
           <div className="w-full max-w-2xl">
             <h1 className="text-3xl font-bold mb-10 italic">5. Xác nhận đơn</h1>
 
+            {/* Khung xác nhận hồ sơ - Giữ nguyên Style nguyên bản */}
             <div className="border-2 border-black rounded-[32px] p-10 space-y-8 bg-white shadow-sm">
               <h2 className="text-2xl font-black text-center uppercase tracking-tight">Xác nhận hồ sơ</h2>
 
               <p className="text-sm text-center text-gray-600 leading-relaxed px-4">
-                Vui lòng kiểm tra kỹ các thông tin đã khai báo trước khi chuyển sang bước thanh toán phí và lệ phí.
+                Vui lòng kiểm tra kỹ các thông tin đã khai báo trước khi chuyển sang bước thanh toán phí và lệ phí. 
+                {formData?.id && <span className="block mt-2 font-bold text-blue-600">(Đang chỉnh sửa hồ sơ mã số: {formData.id})</span>}
               </p>
 
               {/* Checkbox cam đoan */}
@@ -114,12 +127,13 @@ const Step5_Submission = () => {
                     <ul className="space-y-3 list-disc list-outside ml-4 text-xs font-medium text-gray-600 leading-relaxed">
                       <li>Thông tin khai báo là hoàn toàn trung thực.</li>
                       <li>Tôi chịu trách nhiệm trước pháp luật về hồ sơ này.</li>
+                      {formData?.id && <li>Việc chỉnh sửa này không làm thay đổi bản chất của đối tượng đã đăng ký.</li>}
                     </ul>
                   </div>
                 </label>
               </div>
 
-              {/* Nút điều hướng */}
+              {/* Nút điều hướng - Giữ nguyên logic dẫn link */}
               <div className="flex gap-4 pt-6">
                 <button
                   onClick={() => navigate("/applicant/patent/step4")}
@@ -129,7 +143,9 @@ const Step5_Submission = () => {
                 </button>
                 <button
                   onClick={handleNextStep}
-                  className="flex-1 py-3 bg-blue-500 text-white rounded-xl font-bold text-sm hover:bg-blue-600 transition shadow-md flex items-center justify-center gap-2"
+                  disabled={!isConfirmed}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm transition shadow-md flex items-center justify-center gap-2 text-white
+                    ${isConfirmed ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"}`}
                 >
                   Tiếp theo: Thanh toán <ChevronRight size={18} />
                 </button>

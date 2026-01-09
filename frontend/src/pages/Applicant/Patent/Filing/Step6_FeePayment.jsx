@@ -24,7 +24,7 @@ const Step6_FeePayment = () => {
   const [loading, setLoading] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // --- LOGIC TIẾN TRÌNH (Đã sửa từ 5 thành 6) ---
+  // --- LOGIC TIẾN TRÌNH ---
   const currentStep = 6; 
   const steps = [
     { id: 1, label: "Thông tin chung" },
@@ -35,7 +35,7 @@ const Step6_FeePayment = () => {
     { id: 6, label: "Tính phí & Thanh toán" },
   ];
 
-  // --- LOGIC TÍNH TOÁN LỆ PHÍ (Giữ nguyên) ---
+  // --- LOGIC TÍNH TOÁN LỆ PHÍ (Giữ nguyên 100%) ---
   const allClaims = formData?.claims || [];
   const numIndependentClaims = allClaims.filter((c) => c?.type === "Độc lập").length;
   const numPages = parseInt(formData?.totalPages) || 0;
@@ -61,51 +61,60 @@ const Step6_FeePayment = () => {
     }).format(amount);
   };
 
-  // --- XỬ LÝ GỌI API THEO FLOW MỚI ---
+  // --- XỬ LÝ GỌI API (Hỗ trợ cả Nộp mới & Sửa đơn) ---
   const handleVNPayPayment = async () => {
     setLoading(true);
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
     const stage = 1;
 
     try {
-        // --- BƯỚC 1: TẠO ĐƠN (CREATE APPLICATION) ---
-        console.log("Bước 1: Đang tạo đơn...");
+        let currentAppId = formData.id; // Lấy ID nếu là đơn đang sửa
+
+        // --- BƯỚC 1: TẠO HOẶC CẬP NHẬT ĐƠN ---
         const submissionData = new FormData();
-        // Loại bỏ trường 'files' không cần thiết khỏi JSON
         const { files, ...restOfFormData } = formData;
         submissionData.append("patentData", JSON.stringify(restOfFormData));
 
-        // SỬA LỖI: Lặp qua đúng mảng `formData.attachments` và lấy `attachment.file`
+        // Đính kèm các file mới nếu có
         if (formData.attachments && formData.attachments.length > 0) {
             for (const attachment of formData.attachments) {
-                if (attachment.file) { // Đảm bảo đối tượng file tồn tại
+                if (attachment.file) { 
                     submissionData.append("files", attachment.file);
                 }
             }
         }
-        
-        const createResponse = await axios.post(`${API_BASE_URL}/api/patents/create`, submissionData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
 
-        const newApplicationId = createResponse.data.id;
-        if (!newApplicationId) {
-            throw new Error("Không nhận được ID của đơn sau khi tạo.");
+        if (currentAppId) {
+            // KỊCH BẢN SỬA ĐƠN: Gọi API Update
+            console.log(`Bước 1: Đang cập nhật đơn ID ${currentAppId}...`);
+            await axios.put(`${API_BASE_URL}/api/patents/update/${currentAppId}`, submissionData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            console.log("=> Bước 1: Cập nhật thành công.");
+        } else {
+            // KỊCH BẢN NỘP MỚI: Gọi API Create
+            console.log("Bước 1: Đang tạo đơn mới...");
+            const createResponse = await axios.post(`${API_BASE_URL}/api/patents/create`, submissionData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            currentAppId = createResponse.data.id;
+            console.log("=> Bước 1: Tạo mới thành công. ID:", currentAppId);
         }
-        console.log("=> Bước 1 THÀNH CÔNG. Đơn đã được tạo với ID:", newApplicationId);
+
+        if (!currentAppId) throw new Error("Không thể xác định ID hồ sơ.");
 
         // --- BƯỚC 2: NỘP ĐƠN (SUBMIT APPLICATION) ---
-        console.log("Bước 2: Đang nộp đơn với ID:", newApplicationId);
-        const submitResponse = await axios.post(`${API_BASE_URL}/api/patents/${newApplicationId}/submit`);
+        console.log("Bước 2: Đang thực hiện lệnh nộp đơn với ID:", currentAppId);
+        const submitResponse = await axios.post(`${API_BASE_URL}/api/patents/${currentAppId}/submit`);
         
         const submittedApplication = submitResponse.data;
         if (!submittedApplication || !submittedApplication.appNo) {
             throw new Error("Không nhận được mã đơn (appNo) sau khi nộp.");
         }
-        console.log("=> Bước 2 THÀNH CÔNG. Đơn đã được nộp với appNo:", submittedApplication.appNo);
+        console.log("=> Bước 2 THÀNH CÔNG. Mã đơn:", submittedApplication.appNo);
 
-        // --- BƯỚC 3: TẠO LINK THANH TOÁN (CREATE PAYMENT) ---
-        console.log("Bước 3: Đang tạo link thanh toán cho appNo:", submittedApplication.appNo);
+        // --- BƯỚC 3: TẠO LINK THANH TOÁN ---
+        console.log("Bước 3: Đang tạo link thanh toán VNPay...");
         const paymentResponse = await axios.get(
             `${API_BASE_URL}/api/payment/create-payment/${submittedApplication.appNo}/${stage}`, {
                 params: { amount: totalAmount },
@@ -114,17 +123,16 @@ const Step6_FeePayment = () => {
         );
 
         if (paymentResponse.data && paymentResponse.data.url) {
-            console.log("=> Bước 3 THÀNH CÔNG. Chuyển hướng tới VNPay...");
-            // Dọn dẹp form và chuyển hướng
-            clearFormData();
+            console.log("=> Chuyển hướng tới VNPay...");
+            clearFormData(); // Xóa dữ liệu tạm sau khi đã lưu thành công vào DB
             window.location.href = paymentResponse.data.url;
         } else {
             throw new Error("Không nhận được URL thanh toán từ VNPay.");
         }
 
     } catch (error) {
-      console.error("Lỗi trong quá trình nộp đơn và thanh toán:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Đã có lỗi xảy ra. Vui lòng thử lại.";
+      console.error("Lỗi quy trình:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Đã có lỗi xảy ra.";
       alert(`Lỗi: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -135,7 +143,7 @@ const Step6_FeePayment = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-800">
-      {/* HEADER */}
+      {/* HEADER (Giữ nguyên) */}
       <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white sticky top-0 z-10">
         <button 
           onClick={() => window.confirm("Hủy bỏ nộp đơn?") && (clearFormData(), navigate("/applicant/patent"))}
@@ -154,7 +162,7 @@ const Step6_FeePayment = () => {
       </header>
 
       <div className="flex flex-grow overflow-hidden">
-        {/* SIDEBAR (Sửa logic currentStep) */}
+        {/* SIDEBAR (Giữ nguyên) */}
         <aside className="w-72 border-r border-gray-100 p-8 shrink-0 bg-gray-50/30">
           <h2 className="text-lg font-bold mb-8 text-gray-700">Tiến trình nộp đơn</h2>
           <div className="space-y-6">
@@ -275,6 +283,7 @@ const Step6_FeePayment = () => {
   );
 };
 
+// Component Helper FeeRow (Giữ nguyên)
 const FeeRow = ({ label, price, note }) => (
   <div className="flex justify-between items-start py-4 border-b border-gray-50 last:border-0">
     <div className="space-y-1">

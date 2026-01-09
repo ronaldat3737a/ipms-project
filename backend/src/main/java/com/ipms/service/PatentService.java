@@ -379,74 +379,97 @@ public class PatentService {
 
     // ======================== LOGIC NỘP LẠI HỒ SƠ (RE-SUBMISSION) ========================
 
-    @Transactional(rollbackFor = Exception.class)
-    public Application resubmitApplication(UUID id, PatentSubmissionDTO dto) {
-        // 1. Tìm hồ sơ hiện tại
-        Application app = applicationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ với ID: " + id));
+@Transactional(rollbackFor = Exception.class)
+public Application resubmitApplication(UUID id, PatentSubmissionDTO dto, MultipartFile[] files) { // THÊM THAM SỐ files Ở ĐÂY
+    // 1. Tìm hồ sơ hiện tại
+    Application app = applicationRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ với ID: " + id));
 
-        // 2. Kiểm tra trạng thái và Tăng bộ đếm tương ứng
-        if (app.getStatus() == AppStatus.CHO_SUA_DOI_HINH_THUC) {
-            app.setFormalRevisionCount((app.getFormalRevisionCount() == null ? 0 : app.getFormalRevisionCount()) + 1);
-            app.setStatus(AppStatus.DANG_TD_HINH_THUC); // Chuyển về thẩm định hình thức
-        } else if (app.getStatus() == AppStatus.CHO_SUA_DOI_NOI_DUNG) {
-            app.setSubstantiveRevisionCount((app.getSubstantiveRevisionCount() == null ? 0 : app.getSubstantiveRevisionCount()) + 1);
-            app.setStatus(AppStatus.DANG_TD_NOI_DUNG); // Chuyển về thẩm định nội dung
-        } else {
-            throw new IllegalStateException("Hồ sơ không ở trạng thái chờ sửa đổi.");
-        }
-
-        // 3. Cập nhật thông tin chung của Đơn
-        app.setTitle(dto.getTitle());
-        app.setSummary(dto.getSummary());
-        app.setTechnicalField(dto.getTechnicalField());
-        app.setSolutionDetail(dto.getSolutionDetail());
-        app.setSolutionType(mapSolutionType(dto.getSolutionType()));
-        app.setTotalPages(dto.getTotalPages());
-        app.setIpcCodes(dto.getIpcCodes() != null ? new ArrayList<>(dto.getIpcCodes()) : new ArrayList<>());
-        app.setUpdatedAt(java.time.OffsetDateTime.now());
-
-        // 4. Cập nhật thông tin Chủ đơn (Applicant)
-        Applicant owner = applicantRepository.findByApplicationId(id)
-                .orElse(new Applicant());
-        owner.setApplication(app);
-        owner.setFullName(dto.getOwnerName());
-        owner.setIdNumber(dto.getOwnerId());
-        owner.setAddress(dto.getOwnerAddress());
-        owner.setPhone(dto.getOwnerPhone());
-        owner.setEmail(dto.getOwnerEmail());
-        owner.setType("Cá nhân".equals(dto.getOwnerType()) ? ApplicantType.CA_NHAN : ApplicantType.TO_CHUC);
-        applicantRepository.save(owner);
-
-        // 5. Làm mới danh sách Tác giả (Xóa cũ - Thêm mới)
-        authorRepository.deleteByApplicationId(id);
-        if (dto.getAuthors() != null) {
-            for (int i = 0; i < dto.getAuthors().size(); i++) {
-                AuthorDTO aDto = dto.getAuthors().get(i);
-                Author author = Author.builder()
-                        .application(app)
-                        .fullName(aDto.getFullName())
-                        .nationality(aDto.getNationality())
-                        .idNumber(aDto.getIdNumber())
-                        .orderIndex(i + 1)
-                        .build();
-                authorRepository.save(author);
-            }
-        }
-
-        // 6. Làm mới danh sách Điểm bảo hộ (Xóa cũ - Thêm mới)
-        claimRepository.deleteByApplicationId(id);
-        saveClaims(dto.getClaims(), app);
-
-        // 7. Lưu lịch sử hành động (ReviewHistory)
-        ReviewHistory history = new ReviewHistory();
-        history.setApplication(app);
-        history.setStatusTo(app.getStatus());
-        history.setNote("Người nộp đơn đã gửi lại hồ sơ chỉnh sửa.");
-        history.setReviewDate(java.time.OffsetDateTime.now());
-        reviewHistoryRepository.save(history);
-
-        return applicationRepository.save(app);
+    // 2. Kiểm tra trạng thái và Tăng bộ đếm tương ứng (Giữ nguyên logic của bạn)
+    if (app.getStatus() == AppStatus.CHO_SUA_DOI_HINH_THUC) {
+        app.setFormalRevisionCount((app.getFormalRevisionCount() == null ? 0 : app.getFormalRevisionCount()) + 1);
+        app.setStatus(AppStatus.DANG_TD_HINH_THUC); 
+    } else if (app.getStatus() == AppStatus.CHO_SUA_DOI_NOI_DUNG) {
+        app.setSubstantiveRevisionCount((app.getSubstantiveRevisionCount() == null ? 0 : app.getSubstantiveRevisionCount()) + 1);
+        app.setStatus(AppStatus.DANG_TD_NOI_DUNG); 
+    } else {
+        throw new IllegalStateException("Hồ sơ không ở trạng thái chờ sửa đổi.");
     }
+
+    // 3. Cập nhật thông tin chung của Đơn (Giữ nguyên logic của bạn)
+    app.setTitle(dto.getTitle());
+    app.setSummary(dto.getSummary());
+    app.setTechnicalField(dto.getTechnicalField());
+    app.setSolutionDetail(dto.getSolutionDetail());
+    app.setSolutionType(mapSolutionType(dto.getSolutionType()));
+    app.setTotalPages(dto.getTotalPages());
+    app.setIpcCodes(dto.getIpcCodes() != null ? new ArrayList<>(dto.getIpcCodes()) : new ArrayList<>());
+    app.setUpdatedAt(java.time.OffsetDateTime.now());
+
+    // 4. Cập nhật thông tin Chủ đơn (Giữ nguyên logic của bạn)
+    Applicant owner = applicantRepository.findByApplicationId(id)
+            .orElse(new Applicant());
+    owner.setApplication(app);
+    owner.setFullName(dto.getOwnerName());
+    owner.setIdNumber(dto.getOwnerId());
+    owner.setAddress(dto.getOwnerAddress());
+    owner.setPhone(dto.getOwnerPhone());
+    owner.setEmail(dto.getOwnerEmail());
+    owner.setType("Cá nhân".equals(dto.getOwnerType()) ? ApplicantType.CA_NHAN : ApplicantType.TO_CHUC);
+    applicantRepository.save(owner);
+
+    // 5. Làm mới danh sách Tác giả (Xóa cũ - Thêm mới)
+    authorRepository.deleteByApplicationId(id);
+    if (dto.getAuthors() != null) {
+        for (int i = 0; i < dto.getAuthors().size(); i++) {
+            AuthorDTO aDto = dto.getAuthors().get(i);
+            Author author = Author.builder()
+                    .application(app)
+                    .fullName(aDto.getFullName())
+                    .nationality(aDto.getNationality())
+                    .idNumber(aDto.getIdNumber())
+                    .orderIndex(i + 1)
+                    .build();
+            authorRepository.save(author);
+        }
+    }
+
+    // 6. Làm mới danh sách Điểm bảo hộ (Xóa cũ - Thêm mới)
+
+    // 6.1 Xóa claims cũ trong DB
+    claimRepository.deleteByApplicationId(id);
+    claimRepository.flush(); // 🚨 BẮT BUỘC
+
+    // 6.2 Clear danh sách claims trong bộ nhớ (Hibernate context)
+    if (app.getClaims() != null) {
+        app.getClaims().clear();
+    }
+
+    // 6.3 Lưu lại claims mới
+    saveClaims(dto.getClaims(), app);
+
+
+    // ---------------------------------------------------------
+    // 7. MỚI: XỬ LÝ CẬP NHẬT FILE (Xóa lỗi 415 và đồng bộ file mới)
+    // ---------------------------------------------------------
+    if (files != null && files.length > 0) {
+        // Nếu có file mới gửi lên, ta xóa các bản ghi file cũ trong DB
+        // (Lưu ý: Nếu muốn xóa file vật lý trong thư mục uploads/ bạn cần thêm logic Files.delete)
+        attachmentRepository.deleteByApplicationId(id);
+        
+        // Gọi lại hàm savePhysicalFiles đã có sẵn của bạn để lưu file mới
+        savePhysicalFiles(files, app, dto.getAttachments());
+    }
+
+    // 8. Lưu lịch sử hành động
+    ReviewHistory history = new ReviewHistory();
+    history.setApplication(app);
+    history.setStatusTo(app.getStatus());
+    history.setNote("Người nộp đơn đã gửi lại hồ sơ chỉnh sửa.");
+    history.setReviewDate(java.time.OffsetDateTime.now());
+    reviewHistoryRepository.save(history);
+
+    return applicationRepository.save(app);
+}
     
 }

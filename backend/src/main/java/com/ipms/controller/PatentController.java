@@ -98,15 +98,21 @@ public class PatentController {
     }
 
     // ENDPOINT: CẬP NHẬT LẠI HỒ SƠ SAU KHI SỬA ĐỔI
-    @PutMapping(value = "/{id}/resubmit", consumes = { MediaType.APPLICATION_JSON_VALUE })
-    public ResponseEntity<Application> resubmitApplication(
-            @PathVariable UUID id,
-            @RequestBody PatentSubmissionDTO dto) {
+    // SỬA: Đổi consumes thành MULTIPART_FORM_DATA_VALUE
+@PutMapping(value = "/{id}/resubmit", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+public ResponseEntity<Application> resubmitApplication(
+        @PathVariable UUID id,
+        @RequestPart("patentData") String patentDataJson, // Nhận JSON dạng String giống hàm create
+        @RequestPart(value = "files", required = false) MultipartFile[] files) throws Exception {
 
-        // Gọi service xử lý logic: Tăng bộ đếm, ghi đè dữ liệu, chuyển trạng thái
-        Application resubmittedApp = patentService.resubmitApplication(id, dto);
-        return ResponseEntity.ok(resubmittedApp);
-    }
+    // Chuyển chuỗi JSON thành DTO
+    ObjectMapper objectMapper = new ObjectMapper();
+    PatentSubmissionDTO dto = objectMapper.readValue(patentDataJson, PatentSubmissionDTO.class);
+
+    // Gọi service xử lý (Đảm bảo hàm resubmitApplication trong Service cũng nhận thêm tham số files)
+    Application resubmittedApp = patentService.resubmitApplication(id, dto, files); 
+    return ResponseEntity.ok(resubmittedApp);
+}
 
 
     // --- 2. CHỨC NĂNG DÀNH CHO THẨM ĐỊNH VIÊN (EXAMINER) ---
