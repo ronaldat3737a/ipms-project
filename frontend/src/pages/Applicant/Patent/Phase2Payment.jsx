@@ -8,7 +8,7 @@ import {
 
 const Phase2Payment = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id, type } = useParams();
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -38,10 +38,7 @@ const Phase2Payment = () => {
 
   // Lấy dữ liệu từ Database (app object)
   const numIndependentClaims = app?.claims?.filter(c => 
-    c.type === "DOK_LAP" || 
-    c.claimType === "DOK_LAP" || 
-    c.type === "Độc lập" ||
-    c.claimType === "Độc lập"
+    !c.parent_claim_id || c.type === "DOK_LAP"
   ).length || 0;
   const totalPages = parseInt(app?.totalPages) || 0; // Đảm bảo trường totalPages có trong Entity Application
 
@@ -83,7 +80,7 @@ const Phase2Payment = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <header className="h-16 border-b flex items-center justify-between px-8 bg-white sticky top-0 z-10">
-        <button onClick={() => navigate(`/applicant/patent/view/${id}`)} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium">
+        <button onClick={() => navigate(`/applicant/applications/${type}/view/${id}`)} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium">
           <ChevronLeft size={18} /> Quay lại chi tiết đơn
         </button>
         <div className="flex items-center gap-2">

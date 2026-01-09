@@ -213,7 +213,7 @@ const PatentDetail = () => {
    </div>
    {app.status === "CHO_NOP_PHI_GD2" ? (
        <button 
-          onClick={() => navigate(`/applicant/payment/phase2/${app.id}`)} // THÊM DÒNG NÀY
+          onClick={() => navigate(`/applicant/applications/${type}/payment/phase2/${id}`)}
           className="bg-purple-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-700 shadow-sm transition-all"
        >
            THANH TOÁN NGAY
@@ -231,7 +231,7 @@ const PatentDetail = () => {
                 </div>
                 {app.status === "CHO_NOP_PHI_GD3" ? (
                     <button 
-                        onClick={() => navigate(`/applicant/payment/phase3/${app.id}`)}
+                        onClick={() => navigate(`/applicant/applications/${type}/payment/phase3/${id}`)}
                         className="bg-pink-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-pink-700 transition-all"
                     >
                         THANH TOÁN NGAY
@@ -286,7 +286,7 @@ const PatentDetail = () => {
       </div>
       
       <button 
-        onClick={() => navigate(`/applicant/patent/${id}/certificate`)}
+        onClick={() => navigate(`/applicant/applications/${type}/${id}/certificate`)}
         className="px-8 py-3 bg-green-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95"
       >
         <Award size={20} /> XEM VĂN BẰNG ĐIỆN TỬ
@@ -313,7 +313,7 @@ const PatentDetail = () => {
       
       {/* Bên phải: Nút bấm chuyển hướng giống Examiner */}
       <button 
-        onClick={() => navigate(`/applicant/patent/${id}/reject-reason`)}
+        onClick={() => navigate(`/applicant/applications/${type}/${id}/reject-reason`)}
         className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg"
       >
         <Search size={18} /> XEM LÝ DO TỪ CHỐI
