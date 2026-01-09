@@ -8,7 +8,7 @@ import {
 
 const PatentDetail = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id, type } = useParams();
   
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -339,7 +339,7 @@ const PatentDetail = () => {
       </div>
       
       <button 
-        onClick={() => navigate(`/applicant/patent/revision/${id}`)}
+        onClick={() => navigate(`/applicant/applications/${type}/revision/${id}`)}
         className="px-8 py-4 bg-orange-500 text-white rounded-2xl font-black text-sm flex items-center gap-3 hover:bg-orange-600 shadow-xl shadow-orange-100 transition-all active:scale-95 uppercase tracking-wide"
       >
         <Edit3 size={20} /> Bắt đầu chỉnh sửa hồ sơ

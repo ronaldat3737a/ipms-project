@@ -4,7 +4,7 @@ import { Check, ChevronLeft, Bell, ShieldCheck } from "lucide-react";
 
 const AcceptConfirmation = ({ phase }) => { // Nhận phase từ Props (App.jsx)
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id , type } = useParams();
 
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ const AcceptConfirmation = ({ phase }) => { // Nhận phase từ Props (App.jsx)
 
       if (response.ok) {
         alert(`Hồ sơ ${app?.appNo} ${config.successAlert}`);
-        navigate("/examiner/patents"); 
+        navigate(`/examiner/applications/${type}`);
       } else {
         const errorData = await response.json();
         alert("Lỗi: " + (errorData.message || "Không thể cập nhật trạng thái"));
