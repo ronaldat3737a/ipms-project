@@ -125,7 +125,7 @@ const ExaminerDashboard = () => {
             onClick={() => navigate("/examiner/applications/giai-phap-huu-ich")}
           />
 
-          <SidebarItem icon={<Package size={18} />} label="TĐ Kiểu dáng công nghiệp" />
+          <SidebarItem icon={<Package size={18} />} label="TĐ Kiểu dáng công nghiệp" onClick={() => navigate("/examiner/applications/KIEU_DANG_CN")} />
           <SidebarItem icon={<ShieldCheck size={18} />} label="TĐ Nhãn hiệu" />
 
           <div className="mt-8 mb-2 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">

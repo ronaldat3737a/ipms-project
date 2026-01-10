@@ -103,7 +103,7 @@ const ApplicantDashboard = () => {
             onClick={() => navigate("/applicant/applications/sang-che")} 
           />
           <NavItem icon={<Bookmark size={20} />} label="Nhãn hiệu" />
-          <NavItem icon={<PenTool size={20} />} label="Kiểu dáng CN" />
+          <NavItem icon={<PenTool size={20} />} label="Kiểu dáng CN" onClick={() => navigate("/applicant/applications/KIEU_DANG_CN")} />
           <NavItem icon={<FileStack size={20} />} label="Hồ sơ của tôi" />
         </nav>
 
@@ -186,7 +186,7 @@ const ApplicantDashboard = () => {
                 className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition">
                 <Plus size={18} /> Sáng chế/GPHI
               </button>
-              <button className="bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition">
+              <button onClick={() => navigate("/applicant/design/filing/step1")} className="bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-600 transition">
                 <Plus size={18} /> Kiểu dáng CN
               </button>
               <button className="bg-blue-400 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-500 transition">
