@@ -69,7 +69,7 @@ public class Application {
     private String technicalField;
 
     @JdbcTypeCode(SqlTypes.ARRAY) 
-    @Column(name = "ipc_codes", nullable = false, columnDefinition = "text[]")
+    @Column(name = "ipc_codes", nullable = true, columnDefinition = "text[]")
     private List<String> ipcCodes;
 
     @Column(nullable = false, columnDefinition = "text")

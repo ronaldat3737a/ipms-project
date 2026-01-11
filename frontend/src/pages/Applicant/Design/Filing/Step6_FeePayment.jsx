@@ -67,7 +67,7 @@ const Step6_FeePayment = () => {
         appType: formData.appType,
         title: formData.title,
         usageField: formData.usageField,
-        locarnoCodes: formData.locarnoCodes.split(',').map(c => c.trim()).filter(c => c),
+        locarnoCodes: (formData.locarnoCodes || "").split(',').map(c => c.trim()).filter(c => c),
         similarDesign: formData.similarDesign,
         
         ownerType: formData.ownerType,
