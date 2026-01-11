@@ -208,7 +208,7 @@ const Step3_Attachments = ({ isRevision = false }) => {
   );
 };
 
-const FileSlot = ({ label, required, docType, viewType, fileData, onFileSelect, onRemove, accept, icon }) => {
+const FileSlot = ({ label, required, category, docType, viewType, fileData, onFileSelect, onRemove, accept, icon }) => {
   const inputRef = useRef(null);
   return (
     <div className={`p-6 border rounded-2xl bg-white transition ${fileData ? 'border-green-200 bg-green-50/50' : 'border-gray-100 hover:border-blue-200'}`}>
