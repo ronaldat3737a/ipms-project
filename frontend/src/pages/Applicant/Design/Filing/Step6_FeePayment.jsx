@@ -119,7 +119,10 @@ const Step6_FeePayment = () => {
       console.log("Creating VNPay payment link...");
       const paymentResponse = await axios.get(
           `${API_BASE_URL}/api/payment/create-payment/${submittedApplication.appNo}/${stage}`, {
-              params: { amount: totalAmount },
+              params: { 
+                amount: totalAmount,
+                vnp_ReturnUrl: `${window.location.origin}/applicant/design/filing/payment-result`
+              },
               headers: { "ngrok-skip-browser-warning": "69420" }
           }
       );
