@@ -50,7 +50,7 @@ public class Application {
     @Column(nullable = false, columnDefinition = "text")
     private String title;
 
-    @Column(name = "solution_detail", length = 100, nullable = false)
+    @Column(name = "solution_detail", length = 100, nullable = true)
     private String solutionDetail;
 
     @Column(name = "formal_revision_count")
@@ -62,17 +62,17 @@ public class Application {
     // --- CẬP NHẬT ENUM SOLUTION_TYPE ---
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "solution_type")
+    @Column(name = "solution_type", nullable = true)
     private SolutionType solutionType;
 
-    @Column(name = "technical_field", nullable = false, columnDefinition = "text")
+    @Column(name = "technical_field", nullable = true, columnDefinition = "text")
     private String technicalField;
 
     @JdbcTypeCode(SqlTypes.ARRAY) 
     @Column(name = "ipc_codes", nullable = true, columnDefinition = "text[]")
     private List<String> ipcCodes;
 
-    @Column(nullable = false, columnDefinition = "text")
+    @Column(nullable = true, columnDefinition = "text")
     private String summary;
 
     @Builder.Default
