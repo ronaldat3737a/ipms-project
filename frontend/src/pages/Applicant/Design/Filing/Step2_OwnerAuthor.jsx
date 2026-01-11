@@ -179,10 +179,10 @@ const Step2_OwnerAuthor = ({ isRevision = false }) => {
       {/* Nút điều hướng: Chỉ hiện khi nộp đơn mới */}
       {!isRevision && (
         <div className="flex justify-end gap-4 pt-8">
-          <button onClick={() => navigate(`/applicant/applications/${type}/filing/step1`)} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm">
+          <button onClick={() => navigate(`/applicant/design/filing/step1`)} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm">
             <ChevronLeft size={18} /> Quay lại
           </button>
-          <button onClick={() => navigate(`/applicant/applications/${type}/filing/step3`)} className="flex items-center gap-2 px-8 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition shadow-md">
+          <button onClick={() => navigate(`/applicant/design/filing/step3`)} className="flex items-center gap-2 px-8 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition shadow-md">
             Tiếp theo <ChevronRight size={18} />
           </button>
         </div>
@@ -234,9 +234,11 @@ const Step2_OwnerAuthor = ({ isRevision = false }) => {
           <div className="space-y-6">
             {steps.map((step) => (
               <div key={step.id} className="flex items-center gap-4 relative">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all z-10 
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all z-10 
                   ${currentStep === step.id ? "bg-blue-500 border-blue-500 text-white shadow-md" : 
-                    currentStep > step.id ? "bg-green-500 border-green-500 text-white" : "bg-white border-gray-200 text-gray-400"}`}>
+                    currentStep > step.id ? "bg-green-500 border-green-500 text-white" : "bg-white border-gray-200 text-gray-400"}`}
+                >
                   {currentStep > step.id ? <CheckCircle2 size={16} /> : step.id}
                 </div>
                 <span className={`text-sm font-bold ${currentStep === step.id ? "text-blue-600" : currentStep > step.id ? "text-green-600" : "text-gray-400"}`}>

@@ -35,6 +35,11 @@ public class ApplicationAttachment {
     @Column(name = "doc_type", nullable = false)
     private DocType docType;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "view_type")
+    private com.ipms.entity.enums.ViewType viewType;
+
     @Column(name = "payment_stage")
     private Short paymentStage; 
 

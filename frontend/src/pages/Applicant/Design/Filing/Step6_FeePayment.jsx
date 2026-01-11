@@ -63,10 +63,31 @@ const Step6_FeePayment = () => {
 
     try {
       // Step 1: Create the application draft
-      const { locarnoCodes, ...rest } = formData;
       const payload = {
-        ...rest,
-        locarnoCodes: locarnoCodes.split(',').map(c => c.trim()).filter(c => c),
+        appType: formData.appType,
+        title: formData.title,
+        usageField: formData.usageField,
+        locarnoCodes: formData.locarnoCodes.split(',').map(c => c.trim()).filter(c => c),
+        similarDesign: formData.similarDesign,
+        
+        ownerType: formData.ownerType,
+        ownerName: formData.ownerName,
+        ownerDob: formData.ownerDob,
+        ownerId: formData.ownerId,
+        ownerAddress: formData.ownerAddress,
+        ownerPhone: formData.ownerPhone,
+        ownerEmail: formData.ownerEmail,
+        ownerRepCode: formData.ownerRepCode,
+        
+        authors: formData.authors,
+        
+        descriptionDetail: formData.descriptionDetail,
+        claims: formData.claims,
+        
+        totalFee: formData.totalFee,
+        id: formData.id,
+        appNo: formData.appNo,
+        isRevision: formData.isRevision,
       };
       
       const submissionData = new FormData();
@@ -123,7 +144,7 @@ const Step6_FeePayment = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-800">
       <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white sticky top-0 z-10">
-        <button onClick={() => { if(window.confirm("Hủy và xóa dữ liệu đang soạn?")) { clearFormData(); navigate('/applicant/design/list'); }}} className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium">
+        <button onClick={() => { if(window.confirm("Hủy và xóa dữ liệu đang soạn?")) { clearFormData(); navigate('/applicant/applications/KIEU_DANG_CN'); }}} className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium">
           <div className="w-6 h-6 border border-gray-300 rounded-full flex items-center justify-center"><X size={14} /></div> Hủy bỏ
         </button>
         {/* User Info */}

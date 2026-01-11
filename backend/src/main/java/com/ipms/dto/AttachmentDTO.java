@@ -13,4 +13,5 @@ public class AttachmentDTO {
     private String fileUrl;
     private Long fileSize;
     private String extension;
+    private String viewType; // Thêm dòng này để nhận loại hướng nhìn từ frontend
 }

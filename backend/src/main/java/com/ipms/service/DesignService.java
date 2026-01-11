@@ -97,7 +97,6 @@ public class DesignService {
         // 4. Save Industrial Design specific details
         IndustrialDesignDetail designDetail = IndustrialDesignDetail.builder()
                 .application(app)
-                .applicationId(app.getId())
                 .usageField(dto.getUsageField())
                 .locarnoCodes(dto.getLocarnoCodes())
                 .similarDesign(dto.getSimilarDesign())
@@ -194,15 +193,20 @@ public class DesignService {
 
                 DocType type = DocType.KHAC;
                 FileCategory cat = FileCategory.TAI_LIEU_KHAC;
-                
+                ViewType viewType = null; // Khởi tạo là null
+
                 if (attachmentDtos != null) {
                     Optional<AttachmentDTO> match = attachmentDtos.stream()
-                        .filter(d -> originalFileName != null && originalFileName.contains(d.getFileName()))
+                        .filter(d -> originalFileName != null && originalFileName.equals(d.getFileName()))
                         .findFirst();
                     if (match.isPresent()) {
+                        AttachmentDTO dto = match.get();
                         try {
-                            type = DocType.valueOf(match.get().getDocType());
-                            cat = FileCategory.valueOf(match.get().getCategory());
+                            type = DocType.valueOf(dto.getDocType());
+                            cat = FileCategory.valueOf(dto.getCategory());
+                            if (dto.getViewType() != null) {
+                                viewType = ViewType.valueOf(dto.getViewType());
+                            }
                         } catch (IllegalArgumentException e) {
                             // Keep default if mapping fails
                         }
@@ -213,9 +217,10 @@ public class DesignService {
                         .application(app)
                         .category(cat)
                         .docType(type)
+                        .viewType(viewType) // Gán viewType
                         .fileName(originalFileName)
                         .fileUrl(uniqueFileName)
-                        .fileSize(file.getSize()) 
+                        .fileSize(file.getSize())
                         .extension(getFileExtension(originalFileName))
                         .status(FileStatus.HOAN_TAT)
                         .build();

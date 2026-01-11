@@ -21,32 +21,42 @@ const Step3_Attachments = ({ isRevision = false }) => {
     { id: 5, label: "Xác nhận & Nộp đơn" },
   ];
 
-  const handleFileChange = async (e, category, docType) => {
+  const handleFileChange = async (e, category, docType, viewType) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const newAttachment = {
       id: crypto.randomUUID(),
-      category: category,
-      docType: docType,
+      category,
+      docType,
+      viewType,
       fileName: file.name,
       fileSize: file.size,
       extension: file.name.split('.').pop().toLowerCase(),
-      file: file, 
+      file, 
       status: "HOAN_TAT"
     };
-    const updatedAttachments = (formData?.attachments || []).filter(a => a.docType !== docType);
+    
+    // Logic to replace the file if it has the same docType and viewType
+    const updatedAttachments = (formData?.attachments || []).filter(a => 
+      !(a.docType === docType && (viewType ? a.viewType === viewType : true))
+    );
+
     const updatePayload = { attachments: [...updatedAttachments, newAttachment] };
     updateFormData(updatePayload);
   };
 
-  const removeFile = (docType) => {
-    const filtered = formData.attachments.filter(a => a.docType !== docType);
+  const removeFile = (docType, viewType) => {
+    const filtered = formData.attachments.filter(a => 
+      !(a.docType === docType && (viewType ? a.viewType === viewType : true))
+    );
     updateFormData({ attachments: filtered });
   };
 
-  const getFileByDocType = (docType) => {
-    return formData?.attachments?.find(a => a.docType === docType) || null;
+  const getFileByDocType = (docType, viewType) => {
+    return formData?.attachments?.find(a => 
+      a.docType === docType && (viewType ? a.viewType === viewType : true)
+    ) || null;
   };
 
   const formatBytes = (bytes, decimals = 2) => {
@@ -57,43 +67,78 @@ const Step3_Attachments = ({ isRevision = false }) => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
-
+  
   const imageUploads = formData.attachments?.filter(a => a.category === 'HINH_ANH') || [];
-  const requiredImageCount = 4;
-  const hasEnoughImages = imageUploads.length >= requiredImageCount;
+  const uniqueViewTypes = new Set(imageUploads.map(img => img.viewType));
+  
   const hasDeclaration = getFileByDocType("TO_KHAI") !== null;
+  const hasDescription = getFileByDocType("BAN_MO_TA") !== null;
+  const hasRequiredImages = 
+      uniqueViewTypes.size >= 4 &&
+      uniqueViewTypes.has('PHOI_CANH') &&
+      uniqueViewTypes.has('MAT_TRUOC') &&
+      uniqueViewTypes.has('MAT_SAU');
+
+
+  const getReadableDocType = (file) => {
+    if (file.docType === 'ANH_CHUP') {
+      return `Ảnh ${file.viewType.toLowerCase().replace('_', ' ')}`;
+    }
+    if (file.docType === 'BAN_MO_TA') {
+      return 'Bản mô tả';
+    }
+    if (file.docType === 'TO_KHAI') {
+      return 'Tờ khai';
+    }
+    return file.docType;
+  };
+
 
   const FormContent = (
     <div className={`${isRevision ? "" : "max-w-5xl mx-auto"} space-y-10 text-left`}>
       {!isRevision && <h1 className="text-3xl font-bold italic">3. Tải lên tài liệu</h1>}
 
-      <section className="space-y-4">
-        <h3 className="text-lg font-bold text-gray-700">Tài liệu pháp lý</h3>
-        <FileSlot 
-          label="Tờ khai đăng ký Kiểu dáng công nghiệp" 
-          required 
-          category="HO_SO_PHAP_LY" 
-          docType="TO_KHAI"
-          fileData={getFileByDocType("TO_KHAI")}
-          onFileSelect={handleFileChange}
-          onRemove={removeFile}
-          accept=".pdf"
-        />
-      </section>
+        <section className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-700">Phần 1: Tài liệu pháp lý</h3>
+            <FileSlot 
+              label="Tờ khai đăng ký KDCN" 
+              required 
+              category="HO_SO_PHAP_LY"
+              docType="TO_KHAI"
+              fileData={getFileByDocType("TO_KHAI")}
+              onFileSelect={handleFileChange}
+              onRemove={removeFile}
+              accept=".pdf"
+            />
+        </section>
+
+        <section className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-700">Phần 2: Tài liệu mô tả</h3>
+            <FileSlot 
+              label="Bản mô tả KDCN" 
+              required 
+              category="BAN_MO_TA"
+              docType="BAN_MO_TA"
+              fileData={getFileByDocType("BAN_MO_TA")}
+              onFileSelect={handleFileChange}
+              onRemove={removeFile}
+              accept=".pdf"
+            />
+        </section>
 
       <section className="space-y-4">
         <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold text-gray-700">Bộ ảnh chụp/bản vẽ sản phẩm ({imageUploads.length}/{requiredImageCount})</h3>
-            <p className="text-sm text-amber-600 font-bold bg-amber-50 border border-amber-100 px-3 py-1 rounded-lg">Bắt buộc nộp ít nhất 04 bộ ảnh/bản vẽ</p>
+            <h3 className="text-lg font-bold text-gray-700">Phần 3: Bộ ảnh chụp/bản vẽ sản phẩm ({uniqueViewTypes.size}/4+)</h3>
+            <p className="text-sm text-amber-600 font-bold bg-amber-50 border border-amber-100 px-3 py-1 rounded-lg">Bắt buộc: Phối cảnh, Trước, Sau và tối thiểu 1 ảnh khác</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FileSlot label="Ảnh/Bản vẽ Phối cảnh" required category="HINH_ANH" docType="HINH_ANH_PHOI_CANH" fileData={getFileByDocType("HINH_ANH_PHOI_CANH")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
-          <FileSlot label="Ảnh/Bản vẽ Nhìn từ đằng trước" required category="HINH_ANH" docType="HINH_ANH_TRUOC" fileData={getFileByDocType("HINH_ANH_TRUOC")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
-          <FileSlot label="Ảnh/Bản vẽ Nhìn từ đằng sau" required category="HINH_ANH" docType="HINH_ANH_SAU" fileData={getFileByDocType("HINH_ANH_SAU")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
-          <FileSlot label="Ảnh/Bản vẽ Nhìn từ bên trái" required category="HINH_ANH" docType="HINH_ANH_TRAI" fileData={getFileByDocType("HINH_ANH_TRAI")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
-          <FileSlot label="Ảnh/Bản vẽ Nhìn từ bên phải" required category="HINH_ANH" docType="HINH_ANH_PHAI" fileData={getFileByDocType("HINH_ANH_PHAI")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
-          <FileSlot label="Ảnh/Bản vẽ Nhìn từ trên xuống" optional category="HINH_ANH" docType="HINH_ANH_TREN" fileData={getFileByDocType("HINH_ANH_TREN")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
-          <FileSlot label="Ảnh/Bản vẽ Nhìn từ dưới lên" optional category="HINH_ANH" docType="HINH_ANH_DUOI" fileData={getFileByDocType("HINH_ANH_DUOI")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
+          <FileSlot label="Ảnh/Bản vẽ Phối cảnh" required category="HINH_ANH" docType="ANH_CHUP" viewType="PHOI_CANH" fileData={getFileByDocType("ANH_CHUP", "PHOI_CANH")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
+          <FileSlot label="Ảnh/Bản vẽ Nhìn từ đằng trước" required category="HINH_ANH" docType="ANH_CHUP" viewType="MAT_TRUOC" fileData={getFileByDocType("ANH_CHUP", "MAT_TRUOC")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
+          <FileSlot label="Ảnh/Bản vẽ Nhìn từ đằng sau" required category="HINH_ANH" docType="ANH_CHUP" viewType="MAT_SAU" fileData={getFileByDocType("ANH_CHUP", "MAT_SAU")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
+          <FileSlot label="Ảnh/Bản vẽ Nhìn từ bên trái" required category="HINH_ANH" docType="ANH_CHUP" viewType="MAT_TRAI" fileData={getFileByDocType("ANH_CHUP", "MAT_TRAI")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
+          <FileSlot label="Ảnh/Bản vẽ Nhìn từ bên phải" optional category="HINH_ANH" docType="ANH_CHUP" viewType="MAT_PHAI" fileData={getFileByDocType("ANH_CHUP", "MAT_PHAI")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
+          <FileSlot label="Ảnh/Bản vẽ Nhìn từ trên xuống" optional category="HINH_ANH" docType="ANH_CHUP" viewType="MAT_TREN" fileData={getFileByDocType("ANH_CHUP", "MAT_TREN")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
+          <FileSlot label="Ảnh/Bản vẽ Nhìn từ dưới lên" optional category="HINH_ANH" docType="ANH_CHUP" viewType="MAT_DUOI" fileData={getFileByDocType("ANH_CHUP", "MAT_DUOI")} onFileSelect={handleFileChange} onRemove={removeFile} accept="image/*" icon={<Camera/>}/>
         </div>
       </section>
 
@@ -118,10 +163,10 @@ const Step3_Attachments = ({ isRevision = false }) => {
                     <td className="px-6 py-4 flex items-center gap-2 font-medium">
                       <FileText size={16} className="text-blue-500" /> {file.fileName}
                     </td>
-                    <td className="px-6 py-4 text-gray-500 text-xs">{file.docType}</td>
+                    <td className="px-6 py-4 text-gray-500 text-xs">{getReadableDocType(file)}</td>
                     <td className="px-6 py-4 text-gray-500 text-xs">{formatBytes(file.fileSize)}</td>
                     <td className="px-6 py-4">
-                      <button onClick={() => removeFile(file.docType)} className="text-red-400 hover:text-red-600 transition"><Trash2 size={16} /></button>
+                      <button onClick={() => removeFile(file.docType, file.viewType)} className="text-red-400 hover:text-red-600 transition"><Trash2 size={16} /></button>
                     </td>
                   </tr>
                 ))
@@ -134,7 +179,7 @@ const Step3_Attachments = ({ isRevision = false }) => {
       {!isRevision && (
         <div className="flex justify-end gap-4 pt-10">
           <button onClick={() => navigate('/applicant/design/filing/step2')} className="flex items-center gap-2 px-8 py-3 border border-gray-200 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition shadow-sm"><ChevronLeft size={18} /> Quay lại</button>
-          <button onClick={() => navigate('/applicant/design/filing/step4')} disabled={!hasEnoughImages || !hasDeclaration} className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition shadow-md text-white ${hasEnoughImages && hasDeclaration ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"}`}>Tiếp theo <ChevronRight size={18} /></button>
+          <button onClick={() => navigate('/applicant/design/filing/step4')} disabled={!hasRequiredImages || !hasDescription || !hasDeclaration} className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition shadow-md text-white ${hasRequiredImages && hasDescription && hasDeclaration ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"}`}>Tiếp theo <ChevronRight size={18} /></button>
         </div>
       )}
     </div>
@@ -163,7 +208,7 @@ const Step3_Attachments = ({ isRevision = false }) => {
   );
 };
 
-const FileSlot = ({ label, required, docType, fileData, onFileSelect, onRemove, accept, icon }) => {
+const FileSlot = ({ label, required, docType, viewType, fileData, onFileSelect, onRemove, accept, icon }) => {
   const inputRef = useRef(null);
   return (
     <div className={`p-6 border rounded-2xl bg-white transition ${fileData ? 'border-green-200 bg-green-50/50' : 'border-gray-100 hover:border-blue-200'}`}>
@@ -181,13 +226,14 @@ const FileSlot = ({ label, required, docType, fileData, onFileSelect, onRemove, 
           ) : <p className="text-[11px] text-gray-400 mt-1 italic text-left">Chưa có tệp</p>}
         </div>
         <div className="flex items-center gap-3">
-          {fileData && <button onClick={() => onRemove(docType)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={18} /></button>}
-          <input type="file" ref={inputRef} className="hidden" onChange={(e) => onFileSelect(e, e.target.accept.startsWith('image') ? 'HINH_ANH' : 'HO_SO_PHAP_LY', docType)} accept={accept} />
+          {fileData && <button onClick={() => onRemove(docType, viewType)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 size={18} /></button>}
+          <input type="file" ref={inputRef} className="hidden" onChange={(e) => onFileSelect(e, e.target.accept.startsWith('image') ? 'HINH_ANH' : 'BAN_MO_TA', docType, viewType)} accept={accept} />
           <button onClick={() => inputRef.current.click()} className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${fileData ? "border text-gray-500" : "bg-blue-50 text-blue-600"}`}><Upload size={14} /> {fileData ? "Thay đổi" : "Chọn tệp"}</button>
         </div>
       </div>
     </div>
   );
 };
+
 
 export default Step3_Attachments;

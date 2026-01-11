@@ -36,7 +36,7 @@ const Step5_Submission = () => {
       alert("Vui lòng xác nhận cam đoan thông tin trước khi chuyển sang bước thanh toán.");
       return;
     }
-    navigate(`/applicant/applications/${type}/filing/step6`);
+    navigate(`/applicant/design/filing/step6`);
   };
 
   return (
@@ -48,7 +48,7 @@ const Step5_Submission = () => {
             const isConfirm = window.confirm("Hệ thống sẽ xóa toàn bộ dữ liệu đang nhập. Bạn có chắc chắn muốn hủy bỏ không?");
             if (isConfirm) {
               clearFormData();
-              navigate(`/applicant/applications/${type}`);
+              navigate(`/applicant/design/list`);
             }
           }}
           className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition text-sm font-medium"
@@ -131,7 +131,7 @@ const Step5_Submission = () => {
               {/* Nút điều hướng - Giữ nguyên logic dẫn link */}
               <div className="flex gap-4 pt-6">
                 <button
-                  onClick={() => navigate(`/applicant/applications/${type}/filing/step4`)}
+                  onClick={() => navigate(`/applicant/design/filing/step4`)}
                   className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-sm text-gray-500 hover:bg-gray-50 transition"
                 >
                   Quay lại

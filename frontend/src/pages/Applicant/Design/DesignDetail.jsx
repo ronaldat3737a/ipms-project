@@ -42,6 +42,29 @@ const DesignDetail = () => {
 
   const imageAttachments = application.attachments?.filter(att => att.category === 'HINH_ANH') || [];
 
+  // Nhóm các ảnh theo viewType
+  const groupedImages = imageAttachments.reduce((acc, image) => {
+    const viewType = image.viewType || 'KHAC'; // Nhóm các ảnh không có viewType vào mục 'Khác'
+    if (!acc[viewType]) {
+      acc[viewType] = [];
+    }
+    acc[viewType].push(image);
+    return acc;
+  }, {});
+
+  const viewTypeLabels = {
+    PHOI_CANH: 'Ảnh phối cảnh',
+    MAT_TRUOC: 'Nhìn từ đằng trước',
+    MAT_SAU: 'Nhìn từ đằng sau',
+    MAT_TRAI: 'Nhìn từ bên trái',
+    MAT_PHAI: 'Nhìn từ bên phải',
+    MAT_TREN: 'Nhìn từ trên xuống',
+    MAT_DUOI: 'Nhìn từ dưới lên',
+    KHAC: 'Ảnh khác',
+  };
+
+  const orderedViewTypes = ['PHOI_CANH', 'MAT_TRUOC', 'MAT_SAU', 'MAT_TRAI', 'MAT_PHAI', 'MAT_TREN', 'MAT_DUOI', 'KHAC'];
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-24 font-sans text-[#333]">
       {/* --- HEADER --- */}
@@ -158,21 +181,31 @@ const DesignDetail = () => {
             <Camera size={18} className="text-blue-600" />
             <h2 className="font-bold text-[#495057] uppercase text-sm tracking-wide">3. Bộ ảnh chụp/Bản vẽ sản phẩm</h2>
           </div>
-          <div className="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {imageAttachments.length > 0 ? imageAttachments.map((doc) => (
-              <a 
-                key={doc.id}
-                href={`http://localhost:8080/uploads/${doc.fileUrl}`} 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="aspect-square block border-2 border-dashed rounded-xl hover:border-blue-400 transition-all group overflow-hidden"
-              >
-                <img src={`http://localhost:8080/uploads/${doc.fileUrl}`} alt={doc.fileName} className="w-full h-full object-cover"/>
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Eye size={32} className="text-white"/>
+          <div className="p-6 space-y-6">
+            {orderedViewTypes.map(viewType => (
+              groupedImages[viewType] && (
+                <div key={viewType}>
+                  <h3 className="font-bold text-sm text-slate-600 mb-2 border-b pb-2">{viewTypeLabels[viewType]}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {groupedImages[viewType].map(doc => (
+                       <a 
+                          key={doc.id}
+                          href={`http://localhost:8080/uploads/${doc.fileUrl}`} 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aspect-square block border-2 border-dashed rounded-xl hover:border-blue-400 transition-all group overflow-hidden relative"
+                        >
+                          <img src={`http://localhost:8080/uploads/${doc.fileUrl}`} alt={doc.fileName} className="w-full h-full object-cover"/>
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Eye size={32} className="text-white"/>
+                          </div>
+                        </a>
+                    ))}
+                  </div>
                 </div>
-              </a>
-            )) : <p className="p-6 text-center text-gray-400 italic col-span-full">Không có ảnh nào được tải lên.</p>}
+              )
+            ))}
+            {imageAttachments.length === 0 && <p className="p-6 text-center text-gray-400 italic col-span-full">Không có ảnh nào được tải lên.</p>}
           </div>
         </section>
 
