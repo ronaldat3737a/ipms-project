@@ -63,6 +63,10 @@ const Step6_FeePayment = () => {
 
     try {
       // Step 1: Create the application draft
+
+      // Create a version of attachments without the File object for the JSON payload
+      const attachmentsForPayload = formData.attachments.map(({ file, ...meta }) => meta);
+
       const payload = {
         appType: formData.appType,
         title: formData.title,
@@ -84,6 +88,8 @@ const Step6_FeePayment = () => {
         descriptionDetail: formData.descriptionDetail,
         claims: formData.claims,
         
+        attachments: attachmentsForPayload, // Add metadata here
+
         totalFee: formData.totalFee,
         id: formData.id,
         appNo: formData.appNo,
