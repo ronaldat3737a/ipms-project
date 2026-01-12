@@ -13,6 +13,7 @@ import Phase2Payment from "./pages/Applicant/Patent/Phase2Payment";
 import Phase3Payment from "./pages/Applicant/Patent/Phase3Payment";
 import PatentRevision from "./pages/Applicant/Patent/PatentRevision";
 import ApplicantRejectReasonView from "./pages/Applicant/Patent/ApplicantRejectReasonView";
+import PaymentResult from "./pages/Applicant/PaymentResult";
 
 // 3. Nhóm Người duyệt đơn (Examiner)
 import ExaminerDashboard from "./pages/Examiner/ExaminerDashboard";
@@ -29,7 +30,7 @@ import Step3_Attachments from "./pages/Applicant/Patent/Filing/Step3_Attachments
 import Step4_Claims from "./pages/Applicant/Patent/Filing/Step4_Claims";
 import Step5_Submission from "./pages/Applicant/Patent/Filing/Step5_Submission";
 import Step6_FeePayment from "./pages/Applicant/Patent/Filing/Step6_FeePayment";
-import SuccessPage from "./pages/Applicant/Patent/Filing/SuccessPage";
+
 
 // 5. Nhóm Examiner xử lý (Actions)
 import AcceptConfirmation from "./pages/Examiner/Patent/AcceptConfirmation";
@@ -52,7 +53,7 @@ import DesignStep3 from "./pages/Applicant/Design/Filing/Step3_Attachments";
 import DesignStep4 from "./pages/Applicant/Design/Filing/Step4_Claims";
 import DesignStep5 from "./pages/Applicant/Design/Filing/Step5_Submission";
 import DesignStep6 from "./pages/Applicant/Design/Filing/Step6_FeePayment";
-import DesignSuccessPage from "./pages/Applicant/Design/Filing/SuccessPage";
+
 
 // 7. Examiner - Design
 import DesignReviewList from "./pages/Examiner/Design/DesignReviewList";
@@ -66,6 +67,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/payment-result" element={<PaymentResult />} />
 
         {/* === APPLICANT DASHBOARD === */}
         <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
@@ -83,7 +85,6 @@ function App() {
                 <Route path="step4" element={<Step4_Claims />} />
                 <Route path="step5" element={<Step5_Submission />} />
                 <Route path="step6" element={<Step6_FeePayment />} />
-                <Route path="payment-result" element={<SuccessPage />} />
               </Routes>
             </PatentFilingProvider>
         } />
@@ -98,7 +99,6 @@ function App() {
                     <Route path="step4" element={<DesignStep4 />} />
                     <Route path="step5" element={<DesignStep5 />} />
                     <Route path="step6" element={<DesignStep6 />} />
-                    <Route path="payment-result" element={<DesignSuccessPage />} />
                 </Routes>
             </DesignFilingProvider>
         } />
