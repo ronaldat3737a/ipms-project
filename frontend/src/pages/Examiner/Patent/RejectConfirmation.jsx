@@ -9,7 +9,7 @@ import {
 
 const RejectConfirmation = ({ phase }) => { // Nhận phase từ App.jsx
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id, type } = useParams();
   const [reason, setReason] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,7 +41,7 @@ const RejectConfirmation = ({ phase }) => { // Nhận phase từ App.jsx
       if (response.ok) {
         alert("Đã gửi quyết định từ chối hồ sơ thành công!");
         // Sau khi từ chối, quay về danh sách quản lý tương ứng
-        navigate(isSubstantive ? "/examiner/patents" : "/examiner/utility-solutions");
+        navigate(`/examiner/applications/${type}`);
       } else {
         const errorData = await response.json();
         alert("Lỗi: " + (errorData.message || "Không thể cập nhật trạng thái"));
